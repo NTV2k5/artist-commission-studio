@@ -31,18 +31,19 @@ export default async function HomePage() {
               src="https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=2000&q=85"
               alt="Họa phẩm chủ đạo - Xưởng tranh Quốc Tuấn"
               fill
-              className="object-cover object-center brightness-[0.88] scale-105"
+              sizes="100vw"
+              className="object-cover object-center brightness-[0.85] scale-105"
               priority
             />
             {/* Museum gallery atmospheric overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-canvas via-canvas/40 to-black/30" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/35 to-[#FAF9F6]" />
             <div className="absolute inset-0 bg-radial-gradient from-transparent via-black/20 to-black/60 pointer-events-none" />
           </div>
 
           {/* Centered Editorial Hero Content */}
-          <div className="relative z-10 max-w-5xl mx-auto px-6 text-center space-y-8 pt-24 pb-20">
+          <div className="relative z-10 max-w-5xl mx-auto px-6 text-center space-y-8 pt-28 pb-20">
             {/* Subtle Slate-Teal Subtitle Bar / Badge */}
-            <div className="inline-flex items-center gap-2 px-5 py-2 bg-brand/90 backdrop-blur-md text-white border border-brand-light/30 shadow-sm">
+            <div className="inline-flex items-center gap-2 px-5 py-2 bg-brand/90 backdrop-blur-md text-white border border-brand-light/30 shadow-md">
               <Sparkles className="w-3.5 h-3.5 text-artisan-light" />
               <span className="text-xs font-sans tracking-editorial uppercase font-medium">
                 Xưởng Sáng Tác Tranh Sơn Dầu & Tranh Tường Độc Bản
@@ -50,13 +51,13 @@ export default async function HomePage() {
             </div>
 
             {/* High-Contrast Editorial Display Serif */}
-            <h1 className="font-serif text-5xl sm:text-6xl md:text-8xl font-normal text-charcoal tracking-tight leading-[1.08] drop-shadow-sm">
+            <h1 className="font-serif text-5xl sm:text-6xl md:text-8xl font-normal text-white tracking-tight leading-[1.08] drop-shadow-md">
               Nghệ thuật nguyên bản, <br />
-              <span className="italic font-light">định hình không gian sống.</span>
+              <span className="italic font-light text-zinc-100">định hình không gian sống.</span>
             </h1>
 
             {/* Editorial Lead Paragraph */}
-            <p className="max-w-2xl mx-auto text-charcoal-muted text-base md:text-lg font-light leading-relaxed">
+            <p className="max-w-2xl mx-auto text-zinc-200 text-base md:text-lg font-light leading-relaxed drop-shadow-sm">
               Mỗi tác phẩm là sự giao hòa giữa cảm xúc tĩnh tại, chất liệu tự nhiên nhập khẩu châu Âu và kỹ thuật hàn lâm. Tinh tế, bền vững và kiến tạo duy nhất theo phong cách của bạn.
             </p>
 
@@ -64,14 +65,14 @@ export default async function HomePage() {
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/commission"
-                className="w-full sm:w-auto px-8 py-4 bg-brand hover:bg-brand-hover text-white text-xs uppercase tracking-editorial font-medium transition-all shadow-md flex items-center justify-center gap-2.5"
+                className="w-full sm:w-auto px-8 py-4 bg-brand hover:bg-brand-hover text-white text-xs uppercase tracking-editorial font-medium transition-all shadow-lg flex items-center justify-center gap-2.5"
               >
                 <span>Khám Phá Bảng Giá & Đặt Vẽ</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 href="/portfolio"
-                className="w-full sm:w-auto px-8 py-4 bg-canvas/80 hover:bg-canvas backdrop-blur-md text-charcoal text-xs uppercase tracking-editorial font-medium transition-all border border-hairline flex items-center justify-center"
+                className="w-full sm:w-auto px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white text-xs uppercase tracking-editorial font-medium transition-all border border-white/25 flex items-center justify-center"
               >
                 <span>Xem Bộ Sưu Tập Tác Phẩm</span>
               </Link>

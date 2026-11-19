@@ -56,6 +56,7 @@ export default async function AboutPage() {
                   src="https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=80"
                   alt={studioConfig.artistName}
                   fill
+                  sizes="(max-width: 1024px) 100vw, 450px"
                   className="object-cover grayscale-[15%]"
                   priority
                 />
