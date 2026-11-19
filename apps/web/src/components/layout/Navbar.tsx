@@ -1,14 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, ArrowRight } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
+import { Menu, X, ArrowRight, LayoutDashboard, ShoppingBag, LogOut } from 'lucide-react';
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -22,6 +26,17 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Close user dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const isDarkHero = pathname === '/' && !isScrolled;
 
   const navLinks = [
@@ -31,6 +46,8 @@ export function Navbar() {
     { href: '/about', label: 'Họa Sĩ' },
     { href: '/commission', label: 'Báo Giá & Đặt Vẽ' },
   ];
+
+  const isArtist = session?.user?.role === 'ARTIST';
 
   return (
     <header
@@ -108,8 +125,81 @@ export function Navbar() {
           })}
         </nav>
 
-        {/* Action Button */}
+        {/* Action Button & User Profile */}
         <div className="hidden sm:flex items-center gap-4">
+          {session?.user ? (
+            <div className="relative" ref={userMenuRef}>
+              <button
+                type="button"
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all text-xs font-medium ${
+                  isDarkHero
+                    ? 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+                    : 'border-zinc-200 bg-white text-zinc-800 hover:border-zinc-300 shadow-sm'
+                }`}
+              >
+                <div className="w-6 h-6 rounded-full bg-[#3E5C6E] text-white flex items-center justify-center text-[10px] font-semibold">
+                  {session.user.name?.[0]?.toUpperCase() || 'U'}
+                </div>
+                <span className="max-w-[100px] truncate">{session.user.name || session.user.email}</span>
+                {isArtist && (
+                  <span className="text-[9px] px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded font-semibold uppercase tracking-wider">
+                    Artist
+                  </span>
+                )}
+              </button>
+
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-zinc-200 py-2 text-xs text-zinc-700 animate-in fade-in-50 zoom-in-95 duration-150 z-50">
+                  <div className="px-4 py-2 border-b border-zinc-100">
+                    <p className="font-semibold text-zinc-900 truncate">{session.user.name}</p>
+                    <p className="text-[11px] text-zinc-500 truncate">{session.user.email}</p>
+                  </div>
+
+                  {isArtist && (
+                    <Link
+                      href="/studio"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-zinc-50 text-[#3E5C6E] font-medium transition-colors"
+                    >
+                      <LayoutDashboard className="w-4 h-4 text-[#3E5C6E]" />
+                      <span>Studio Quản Trị</span>
+                    </Link>
+                  )}
+
+                  <Link
+                    href="/my-orders"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-zinc-50 text-zinc-700 transition-colors"
+                  >
+                    <ShoppingBag className="w-4 h-4 text-zinc-400" />
+                    <span>Đơn Hàng Của Tôi</span>
+                  </Link>
+
+                  <div className="border-t border-zinc-100 mt-1 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => signOut({ callbackUrl: '/' })}
+                      className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-rose-50 text-rose-600 transition-colors text-left"
+                    >
+                      <LogOut className="w-4 h-4 text-rose-500" />
+                      <span>Đăng Xuất</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className={`text-xs uppercase tracking-wider font-medium px-3 py-1.5 transition-colors ${
+                isDarkHero ? 'text-[#FAF9F6]/90 hover:text-white' : 'text-zinc-600 hover:text-zinc-900'
+              }`}
+            >
+              Đăng Nhập
+            </Link>
+          )}
+
           <Link
             href="/commission"
             className={`inline-flex items-center gap-2 px-5 py-2.5 text-xs font-medium uppercase tracking-wider transition-all shadow-sm ${
@@ -149,6 +239,44 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
+            {session?.user ? (
+              <>
+                {isArtist && (
+                  <Link
+                    href="/studio"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="py-2 text-[#3E5C6E] font-medium border-b border-hairline/50 flex items-center justify-between"
+                  >
+                    <span>Studio Quản Trị</span>
+                    <LayoutDashboard className="w-4 h-4" />
+                  </Link>
+                )}
+                <Link
+                  href="/my-orders"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-2 text-charcoal hover:text-brand border-b border-hairline/50 flex items-center justify-between"
+                >
+                  <span>Đơn Hàng Của Tôi</span>
+                  <ShoppingBag className="w-4 h-4 text-zinc-400" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="py-2 text-rose-600 text-left flex items-center justify-between"
+                >
+                  <span>Đăng Xuất ({session.user.name})</span>
+                  <LogOut className="w-4 h-4 text-rose-500" />
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 text-brand font-medium border-b border-hairline/50"
+              >
+                Đăng Nhập Khách Hàng / Họa Sĩ
+              </Link>
+            )}
           </nav>
           <div className="pt-2">
             <Link
