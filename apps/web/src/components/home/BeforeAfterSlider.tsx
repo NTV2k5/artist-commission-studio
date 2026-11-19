@@ -59,6 +59,7 @@ export function BeforeAfterSlider({
             src={afterImage}
             alt={afterLabel}
             fill
+            sizes="(max-width: 1280px) 100vw, 1280px"
             className="object-cover"
             priority
           />
@@ -77,6 +78,7 @@ export function BeforeAfterSlider({
               src={beforeImage}
               alt={beforeLabel}
               fill
+              sizes="(max-width: 1280px) 100vw, 1280px"
               className="object-cover brightness-90 grayscale-[30%]"
               priority
             />

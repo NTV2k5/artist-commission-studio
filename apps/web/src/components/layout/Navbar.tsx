@@ -22,6 +22,8 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const isDarkHero = pathname === '/' && !isScrolled;
+
   const navLinks = [
     { href: '/', label: 'Trang Chủ' },
     { href: '/portfolio', label: 'Bộ Sưu Tập' },
@@ -35,14 +37,20 @@ export function Navbar() {
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
           ? 'bg-canvas/90 backdrop-blur-md border-b border-hairline py-3 shadow-sm'
-          : 'bg-transparent py-5'
+          : isDarkHero
+          ? 'bg-transparent py-5'
+          : 'bg-canvas/85 backdrop-blur-md border-b border-hairline py-4'
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
         {/* Brand Handwritten Signature & Mark */}
         <Link href="/" className="flex items-center gap-3 group">
           <svg
-            className="w-8 h-8 text-charcoal group-hover:text-brand transition-colors"
+            className={`w-8 h-8 transition-colors ${
+              isDarkHero
+                ? 'text-[#FAF9F6] group-hover:text-brand-light'
+                : 'text-charcoal group-hover:text-brand'
+            }`}
             viewBox="0 0 100 100"
             fill="none"
             stroke="currentColor"
@@ -57,10 +65,20 @@ export function Navbar() {
             <circle cx="82" cy="72" r="2.5" fill="currentColor" />
           </svg>
           <div className="flex flex-col">
-            <span className="font-serif text-xl md:text-2xl font-normal tracking-wide text-charcoal group-hover:text-brand transition-colors">
+            <span
+              className={`font-serif text-xl md:text-2xl font-normal tracking-wide transition-colors ${
+                isDarkHero
+                  ? 'text-[#FAF9F6] group-hover:text-brand-light'
+                  : 'text-charcoal group-hover:text-brand'
+              }`}
+            >
               Quốc Tuấn
             </span>
-            <span className="text-[10px] font-sans tracking-[0.25em] text-charcoal-muted uppercase">
+            <span
+              className={`text-[10px] font-sans tracking-[0.25em] uppercase transition-colors ${
+                isDarkHero ? 'text-[#FAF9F6]/80' : 'text-charcoal-muted'
+              }`}
+            >
               Art Atelier
             </span>
           </div>
@@ -76,7 +94,11 @@ export function Navbar() {
                 href={link.href}
                 className={`transition-colors py-1 relative ${
                   isActive
-                    ? 'text-charcoal font-medium after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-brand'
+                    ? isDarkHero
+                      ? 'text-[#FAF9F6] font-medium after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-white'
+                      : 'text-charcoal font-medium after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-brand'
+                    : isDarkHero
+                    ? 'text-[#FAF9F6]/80 hover:text-white'
                     : 'text-charcoal-muted hover:text-charcoal'
                 }`}
               >
@@ -90,7 +112,11 @@ export function Navbar() {
         <div className="hidden sm:flex items-center gap-4">
           <Link
             href="/commission"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand hover:bg-brand-hover text-white text-xs font-medium uppercase tracking-wider transition-all shadow-sm"
+            className={`inline-flex items-center gap-2 px-5 py-2.5 text-xs font-medium uppercase tracking-wider transition-all shadow-sm ${
+              isDarkHero
+                ? 'bg-brand hover:bg-brand-hover text-white border border-brand-light/30'
+                : 'bg-brand hover:bg-brand-hover text-white'
+            }`}
           >
             <span>Đặt Vẽ Tranh</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -100,7 +126,9 @@ export function Navbar() {
         {/* Mobile Hamburger Toggle */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden p-2 text-charcoal hover:text-brand transition-colors"
+          className={`lg:hidden p-2 transition-colors ${
+            isDarkHero ? 'text-[#FAF9F6] hover:text-white' : 'text-charcoal hover:text-brand'
+          }`}
           aria-label="Toggle navigation menu"
         >
           {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}

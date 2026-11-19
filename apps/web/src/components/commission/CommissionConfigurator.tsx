@@ -278,6 +278,7 @@ export function CommissionConfigurator({
                         src={artworks.find((a) => a.slug === selectedTemplateSlug)!.images[0]}
                         alt="Selected template preview"
                         fill
+                        sizes="48px"
                         className="object-cover"
                       />
                     </div>
