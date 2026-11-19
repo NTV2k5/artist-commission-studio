@@ -171,7 +171,7 @@ async function main() {
       title: 'Khu Rừng Nhiệt Đới Đương Đại',
       slug: 'khu-rung-nhiet-doi-duong-dai',
       description: 'Tranh tường khổ lớn nghệ thuật vẽ các loài thực vật nhiệt đới cách điệu với tone màu xanh olive và đất nung trầm ấm, mở rộng không gian quán cafe & sảnh khách sạn.',
-      images: ['https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=1600&q=80'],
+      images: ['https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=1600&q=80'],
       serviceType: ServiceType.WALL_MURAL,
       materialId: materialMap.get('son-tuong-chuyen-dung')!,
       defaultComplexity: Complexity.MEDIUM,
