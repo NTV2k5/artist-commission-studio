@@ -270,3 +270,132 @@ export async function estimatePricingApi(input: PricingEstimateRequest): Promise
 
   return await res.json();
 }
+
+export interface CreateOrderPayload {
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string;
+  serviceType: ServiceType;
+  templateId?: string;
+  customReferenceUrls?: string[];
+  widthCm: number;
+  heightCm: number;
+  materialId: string;
+  complexity: Complexity;
+  frameOption?: FrameOption;
+  address: string;
+  distanceKm?: number;
+  scheduledStartDate?: string;
+  scheduledEndDate?: string;
+  notes?: string;
+}
+
+export async function createOrderApi(payload: CreateOrderPayload, token?: string) {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_BASE_URL}/orders`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Không thể tạo đơn hàng. Vui lòng thử lại.');
+  }
+
+  return await res.json();
+}
+
+export async function fetchOrderByCode(orderCode: string) {
+  const res = await fetch(`${API_BASE_URL}/orders/${orderCode}`, {
+    cache: 'no-store',
+  });
+
+  if (!res.ok) {
+    throw new Error(`Không tìm thấy đơn hàng mã ${orderCode}`);
+  }
+
+  return await res.json();
+}
+
+export async function cancelOrderApi(orderCode: string, reason?: string, token?: string) {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_BASE_URL}/orders/${orderCode}/cancel`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({ reason }),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Không thể hủy đơn hàng');
+  }
+
+  return await res.json();
+}
+
+export async function fetchMyOrdersApi(token: string) {
+  const res = await fetch(`${API_BASE_URL}/orders/my-orders`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+
+  if (!res.ok) {
+    throw new Error('Không thể tải danh sách đơn hàng của bạn');
+  }
+
+  return await res.json();
+}
+
+export async function getPresignedUrlApi(filename: string, contentType: string, fileSize: number) {
+  const res = await fetch(`${API_BASE_URL}/uploads/presigned-url`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename, contentType, fileSize }),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Không thể tạo liên kết upload ảnh');
+  }
+
+  return await res.json();
+}
+
+export async function uploadFileToStorage(file: File): Promise<string> {
+  // 1. Get presigned URL
+  const { uploadUrl, fileUrl, isMock } = await getPresignedUrlApi(file.name, file.type, file.size);
+
+  if (isMock) {
+    // Dev mock PUT
+    await fetch(`${API_BASE_URL}/uploads/mock-upload?key=mock`, {
+      method: 'PUT',
+      body: file,
+    }).catch(() => null);
+    return fileUrl;
+  }
+
+  // 2. Direct upload to R2 / S3
+  const uploadRes = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': file.type,
+    },
+    body: file,
+  });
+
+  if (!uploadRes.ok) {
+    throw new Error('Upload ảnh lên máy chủ lưu trữ thất bại');
+  }
+
+  return fileUrl;
+}
+

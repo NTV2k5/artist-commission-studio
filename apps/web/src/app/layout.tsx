@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
+import { AuthProvider } from '@/components/providers/AuthProvider';
 
 const cormorant = Cormorant_Garamond({
   subsets: ['latin', 'vietnamese'],
@@ -29,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="vi" className={`${cormorant.variable} ${jakarta.variable}`}>
       <body className="font-sans min-h-screen bg-canvas text-charcoal selection:bg-brand selection:text-white">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );
