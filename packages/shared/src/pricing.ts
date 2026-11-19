@@ -156,3 +156,9 @@ export function calculateOrderPricing(input: CalculatePriceInput): CalculatePric
     remainingAmount,
   };
 }
+
+/**
+ * Alias for calculateOrderPricing matching commission configurator specifications
+ */
+export const calculateCommissionPrice = calculateOrderPricing;
+
