@@ -30,6 +30,19 @@ export const CalculatePriceInputSchema = z.object({
   isCustomReference: z.boolean().optional().default(false),
 });
 
+export const PricingEstimateRequestSchema = z.object({
+  serviceType: ServiceTypeSchema,
+  materialId: z.string().min(1, 'Material ID is required'),
+  widthCm: z.number().min(10, 'Width must be at least 10cm').max(3000, 'Width cannot exceed 30m'),
+  heightCm: z.number().min(10, 'Height must be at least 10cm').max(3000, 'Height cannot exceed 30m'),
+  complexity: ComplexitySchema.default(Complexity.MEDIUM),
+  frameOption: FrameOptionSchema.optional().default(FrameOption.NONE),
+  distanceKm: z.number().min(0).optional().default(0),
+  isCustomReference: z.boolean().optional().default(false),
+});
+
+export type PricingEstimateRequest = z.infer<typeof PricingEstimateRequestSchema>;
+
 export const CreateOrderSchema = z.object({
   serviceType: ServiceTypeSchema,
   templateId: z.string().uuid().optional(),
