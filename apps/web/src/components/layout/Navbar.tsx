@@ -51,23 +51,21 @@ export function Navbar() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
-          ? 'bg-canvas/90 backdrop-blur-md border-b border-hairline py-3 shadow-sm'
-          : isDarkHero
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
+        ? 'bg-canvas/90 backdrop-blur-md border-b border-hairline py-3 shadow-sm'
+        : isDarkHero
           ? 'bg-transparent py-5'
           : 'bg-canvas/85 backdrop-blur-md border-b border-hairline py-4'
-      }`}
+        }`}
     >
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
         {/* Brand Handwritten Signature & Mark */}
         <Link href="/" className="flex items-center gap-3 group">
           <svg
-            className={`w-8 h-8 transition-colors ${
-              isDarkHero
-                ? 'text-[#FAF9F6] group-hover:text-brand-light'
-                : 'text-charcoal group-hover:text-brand'
-            }`}
+            className={`w-8 h-8 transition-colors ${isDarkHero
+              ? 'text-[#FAF9F6] group-hover:text-brand-light'
+              : 'text-charcoal group-hover:text-brand'
+              }`}
             viewBox="0 0 100 100"
             fill="none"
             stroke="currentColor"
@@ -83,18 +81,16 @@ export function Navbar() {
           </svg>
           <div className="flex flex-col">
             <span
-              className={`font-serif text-xl md:text-2xl font-normal tracking-wide transition-colors ${
-                isDarkHero
-                  ? 'text-[#FAF9F6] group-hover:text-brand-light'
-                  : 'text-charcoal group-hover:text-brand'
-              }`}
+              className={`font-serif text-xl md:text-2xl font-normal tracking-wide transition-colors ${isDarkHero
+                ? 'text-[#FAF9F6] group-hover:text-brand-light'
+                : 'text-charcoal group-hover:text-brand'
+                }`}
             >
               Quốc Tuấn
             </span>
             <span
-              className={`text-[10px] font-sans tracking-[0.25em] uppercase transition-colors ${
-                isDarkHero ? 'text-[#FAF9F6]/80' : 'text-charcoal-muted'
-              }`}
+              className={`text-[10px] font-sans tracking-[0.25em] uppercase transition-colors ${isDarkHero ? 'text-[#FAF9F6]/80' : 'text-charcoal-muted'
+                }`}
             >
               Art Atelier
             </span>
@@ -109,15 +105,14 @@ export function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`transition-colors py-1 relative ${
-                  isActive
-                    ? isDarkHero
-                      ? 'text-[#FAF9F6] font-medium after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-white'
-                      : 'text-charcoal font-medium after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-brand'
-                    : isDarkHero
+                className={`transition-colors py-1 relative ${isActive
+                  ? isDarkHero
+                    ? 'text-[#FAF9F6] font-medium after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-white'
+                    : 'text-charcoal font-medium after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-brand'
+                  : isDarkHero
                     ? 'text-[#FAF9F6]/80 hover:text-white'
                     : 'text-charcoal-muted hover:text-charcoal'
-                }`}
+                  }`}
               >
                 {link.label}
               </Link>
@@ -132,11 +127,10 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all text-xs font-medium ${
-                  isDarkHero
-                    ? 'border-white/20 bg-white/10 text-white hover:bg-white/20'
-                    : 'border-zinc-200 bg-white text-zinc-800 hover:border-zinc-300 shadow-sm'
-                }`}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all text-xs font-medium ${isDarkHero
+                  ? 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+                  : 'border-zinc-200 bg-white text-zinc-800 hover:border-zinc-300 shadow-sm'
+                  }`}
               >
                 <div className="w-6 h-6 rounded-full bg-[#3E5C6E] text-white flex items-center justify-center text-[10px] font-semibold">
                   {session.user.name?.[0]?.toUpperCase() || 'U'}
@@ -192,9 +186,8 @@ export function Navbar() {
           ) : (
             <Link
               href="/login"
-              className={`text-xs uppercase tracking-wider font-medium px-3 py-1.5 transition-colors ${
-                isDarkHero ? 'text-[#FAF9F6]/90 hover:text-white' : 'text-zinc-600 hover:text-zinc-900'
-              }`}
+              className={`text-xs uppercase tracking-wider font-medium px-3 py-1.5 transition-colors ${isDarkHero ? 'text-[#FAF9F6]/90 hover:text-white' : 'text-zinc-600 hover:text-zinc-900'
+                }`}
             >
               Đăng Nhập
             </Link>
@@ -202,11 +195,10 @@ export function Navbar() {
 
           <Link
             href="/commission"
-            className={`inline-flex items-center gap-2 px-5 py-2.5 text-xs font-medium uppercase tracking-wider transition-all shadow-sm ${
-              isDarkHero
-                ? 'bg-brand hover:bg-brand-hover text-white border border-brand-light/30'
-                : 'bg-brand hover:bg-brand-hover text-white'
-            }`}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 text-xs font-medium uppercase tracking-wider transition-all shadow-sm ${isDarkHero
+              ? 'bg-brand hover:bg-brand-hover text-white border border-brand-light/30'
+              : 'bg-brand hover:bg-brand-hover text-white'
+              }`}
           >
             <span>Đặt Vẽ Tranh</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -216,9 +208,8 @@ export function Navbar() {
         {/* Mobile Hamburger Toggle */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className={`lg:hidden p-2 transition-colors ${
-            isDarkHero ? 'text-[#FAF9F6] hover:text-white' : 'text-charcoal hover:text-brand'
-          }`}
+          className={`lg:hidden p-2 transition-colors ${isDarkHero ? 'text-[#FAF9F6] hover:text-white' : 'text-charcoal hover:text-brand'
+            }`}
           aria-label="Toggle navigation menu"
         >
           {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
