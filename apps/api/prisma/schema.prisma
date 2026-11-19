@@ -1,0 +1,190 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ARTIST
+  CUSTOMER
+}
+
+enum ServiceType {
+  FRAMED_ART
+  WALL_MURAL
+}
+
+enum Complexity {
+  SIMPLE
+  MEDIUM
+  COMPLEX
+}
+
+enum OrderStatus {
+  PENDING_QUOTE
+  AWAITING_DEPOSIT
+  DEPOSIT_PAID
+  SKETCHING
+  PAINTING
+  DELIVERING
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  SEPAY_VIETQR
+  CASH
+}
+
+enum MessageType {
+  TEXT
+  SKETCH_PROPOSAL
+  SYSTEM_EVENT
+}
+
+enum SepayTxStatus {
+  MATCHED
+  UNMATCHED_REVIEW
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  phone     String?
+  avatarUrl String?
+  role      Role     @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders       Order[]
+  sentMessages OrderMessage[]
+}
+
+model ArtistStudioConfig {
+  id                  String   @id @default("default-config")
+  artistName          String   @default("Họa sĩ Tuấn")
+  bio                 String   @db.Text
+  experienceYears     Int      @default(8)
+  studioAddress       String   @default("123 Phố Tranh, Hoàn Kiếm, Hà Nội")
+  studioLat           Float    @default(21.028511)
+  studioLng           Float    @default(105.854444)
+  zaloUrl             String   @default("https://zalo.me/0987654321")
+  messengerUrl        String   @default("https://m.me/artistcommission")
+  hotline             String   @default("0987654321")
+  depositThreshold    Float    @default(1500000)
+  depositPercent      Float    @default(40)
+  minFramedAreaM2     Float    @default(0.2)
+  minMuralAreaM2      Float    @default(1.0)
+  freeSketchRevisions Int      @default(2)
+  freeKmRadius        Float    @default(10)
+  feePerKm            Float    @default(15000)
+  simpleMultiplier    Float    @default(1.0)
+  mediumMultiplier    Float    @default(1.35)
+  complexMultiplier   Float    @default(1.8)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Material {
+  id             String      @id @default(uuid())
+  name           String
+  slug           String      @unique
+  serviceType    ServiceType
+  basePricePerM2 Float
+  description    String      @db.Text
+  durabilityNote String?     @db.Text
+  sampleImageUrl String?
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  artworkTemplates ArtworkTemplate[]
+  orders           Order[]
+}
+
+model ArtworkTemplate {
+  id                String      @id @default(uuid())
+  title             String
+  slug              String      @unique
+  description       String      @db.Text
+  images            String[]
+  serviceType       ServiceType
+  materialId        String
+  defaultComplexity Complexity  @default(MEDIUM)
+  dimensionsNote    String?
+  isFeatured        Boolean     @default(false)
+  isAvailable       Boolean     @default(true)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  material Material @relation(fields: [materialId], references: [id])
+  orders   Order[]
+}
+
+model Order {
+  id                  String        @id @default(uuid())
+  orderCode           String        @unique
+  customerId          String
+  serviceType         ServiceType
+  templateId          String?
+  customReferenceUrls String[]
+  widthCm             Float
+  heightCm            Float
+  materialId          String
+  complexity          Complexity    @default(MEDIUM)
+  frameOption         String?
+  address             String
+  distanceKm          Float         @default(0)
+  shippingOrTravelFee Float         @default(0)
+  artworkPrice        Float
+  totalAmount         Float
+  requireDeposit      Boolean       @default(false)
+  depositAmount       Float         @default(0)
+  paidAmount          Float         @default(0)
+  paymentMethod       PaymentMethod @default(SEPAY_VIETQR)
+  status              OrderStatus   @default(AWAITING_DEPOSIT)
+  revisionCount       Int           @default(0)
+  sketchApprovedAt    DateTime?
+  scheduledStartDate  DateTime?
+  scheduledEndDate    DateTime?
+  cancellationReason  String?       @db.Text
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  customer          User               @relation(fields: [customerId], references: [id])
+  template          ArtworkTemplate?   @relation(fields: [templateId], references: [id])
+  material          Material           @relation(fields: [materialId], references: [id])
+  messages          OrderMessage[]
+  sepayTransactions SepayTransaction[]
+}
+
+model OrderMessage {
+  id             String      @id @default(uuid())
+  orderId        String
+  senderId       String
+  content        String      @db.Text
+  attachmentUrls String[]
+  messageType    MessageType @default(TEXT)
+  createdAt      DateTime    @default(now())
+
+  order  Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sender User  @relation(fields: [senderId], references: [id])
+}
+
+model SepayTransaction {
+  id              String        @id @default(uuid())
+  sepayTxId       String        @unique
+  orderId         String?
+  amount          Float
+  transferContent String
+  gateway         String
+  rawPayload      Json
+  status          SepayTxStatus @default(UNMATCHED_REVIEW)
+  createdAt       DateTime      @default(now())
+
+  order Order? @relation(fields: [orderId], references: [id])
+}
