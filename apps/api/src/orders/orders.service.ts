@@ -499,4 +499,176 @@ export class OrdersService {
       status: result.updatedOrder?.status,
     };
   }
+
+  /**
+   * Retrieves message history for an order
+   */
+  async getOrderMessages(orderCode: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { orderCode },
+      select: { id: true },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with code "${orderCode}" not found`);
+    }
+
+    return this.prisma.orderMessage.findMany({
+      where: { orderId: order.id },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Customer formally approves the sketch:
+   * Sets sketchApprovedAt = now(), transitions status to PAINTING, creates SYSTEM_EVENT, emits realtime
+   */
+  async approveSketch(orderCode: string, notes?: string, authUserId?: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { orderCode },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with code "${orderCode}" not found`);
+    }
+
+    if (order.status === OrderStatus.CANCELLED) {
+      throw new BadRequestException('Đơn hàng đã bị hủy, không thể phê duyệt phác thảo.');
+    }
+
+    const updated = await this.prisma.order.update({
+      where: { orderCode },
+      data: {
+        sketchApprovedAt: new Date(),
+        status: OrderStatus.PAINTING,
+        messages: {
+          create: {
+            senderId: authUserId || order.customerId,
+            content: `Khách hàng đã chính thức phê duyệt bản phác thảo ý tưởng.${notes ? ` Ghi chú: "${notes}"` : ''} Đơn hàng chính thức chuyển sang giai đoạn sáng tác tranh (PAINTING).`,
+            messageType: MessageType.SYSTEM_EVENT,
+          },
+        },
+      },
+      include: {
+        customer: { select: { id: true, name: true, email: true } },
+        material: true,
+        template: true,
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          include: {
+            sender: {
+              select: { id: true, name: true, email: true, role: true, avatarUrl: true },
+            },
+          },
+        },
+      },
+    });
+
+    const latestMessage = updated.messages[0];
+    if (latestMessage) {
+      this.ordersGateway.notifyNewMessage(orderCode, latestMessage);
+    }
+
+    this.ordersGateway.notifyOrderUpdated(orderCode, {
+      orderCode,
+      status: OrderStatus.PAINTING,
+      sketchApprovedAt: updated.sketchApprovedAt,
+    });
+
+    return {
+      message: 'Đã phê duyệt bản phác thảo thành công',
+      order: updated,
+    };
+  }
+
+  /**
+   * Customer requests a revision to the sketch:
+   * Increments revisionCount, checks against freeSketchRevisions, creates SYSTEM_EVENT, emits realtime
+   */
+  async requestRevision(orderCode: string, notes?: string, authUserId?: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { orderCode },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with code "${orderCode}" not found`);
+    }
+
+    if (order.status === OrderStatus.CANCELLED) {
+      throw new BadRequestException('Đơn hàng đã bị hủy, không thể yêu cầu chỉnh sửa.');
+    }
+
+    const config = await this.prisma.artistStudioConfig.findFirst();
+    const freeRevisions = config?.freeSketchRevisions ?? 2;
+    const newRevisionCount = order.revisionCount + 1;
+    const remainingFree = Math.max(0, freeRevisions - newRevisionCount);
+    const isFree = newRevisionCount <= freeRevisions;
+
+    const revisionNote = notes ? ` Ghi chú chỉnh sửa: "${notes}"` : '';
+    const policyNote = isFree
+      ? `Còn ${remainingFree} lượt chỉnh sửa phác thảo miễn phí.`
+      : `Đã hết lượt sửa miễn phí theo chính sách tiêu chuẩn (${freeRevisions} lượt), các yêu cầu tiếp theo có thể phát sinh phụ phí theo thỏa thuận.`;
+
+    const content = `Khách hàng yêu cầu chỉnh sửa phác thảo (Lần ${newRevisionCount}). ${policyNote}${revisionNote}`;
+
+    const updated = await this.prisma.order.update({
+      where: { orderCode },
+      data: {
+        revisionCount: newRevisionCount,
+        status: OrderStatus.SKETCHING,
+        messages: {
+          create: {
+            senderId: authUserId || order.customerId,
+            content,
+            messageType: MessageType.SYSTEM_EVENT,
+          },
+        },
+      },
+      include: {
+        customer: { select: { id: true, name: true, email: true } },
+        material: true,
+        template: true,
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          include: {
+            sender: {
+              select: { id: true, name: true, email: true, role: true, avatarUrl: true },
+            },
+          },
+        },
+      },
+    });
+
+    const latestMessage = updated.messages[0];
+    if (latestMessage) {
+      this.ordersGateway.notifyNewMessage(orderCode, latestMessage);
+    }
+
+    this.ordersGateway.notifyOrderUpdated(orderCode, {
+      orderCode,
+      status: OrderStatus.SKETCHING,
+      revisionCount: newRevisionCount,
+    });
+
+    return {
+      message: 'Đã gửi yêu cầu chỉnh sửa phác thảo',
+      revisionCount: newRevisionCount,
+      remainingFree,
+      isFree,
+      order: updated,
+    };
+  }
 }

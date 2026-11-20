@@ -498,3 +498,96 @@ export async function loginApi(payload: LoginPayload) {
 
   return await res.json();
 }
+
+export async function fetchOrderMessagesApi(orderCode: string) {
+  const res = await fetch(`${getApiBaseUrl()}/orders/${orderCode}/messages`, {
+    cache: 'no-store',
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể tải lịch sử trao đổi đơn hàng');
+  }
+
+  return await res.json();
+}
+
+export async function approveSketchApi(orderCode: string, notes?: string, token?: string) {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${getApiBaseUrl()}/orders/${orderCode}/approve-sketch`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ notes }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể phê duyệt bản phác thảo');
+  }
+
+  return await res.json();
+}
+
+export async function requestRevisionApi(orderCode: string, notes?: string, token?: string) {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${getApiBaseUrl()}/orders/${orderCode}/request-revision`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ notes }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể gửi yêu cầu chỉnh sửa');
+  }
+
+  return await res.json();
+}
+
+export interface AiChatMessage {
+  role: 'user' | 'model' | 'assistant';
+  content: string;
+}
+
+export interface AiChatResponse {
+  reply: string;
+  actionSuggestion?: {
+    type: 'COMMISSION' | 'PORTFOLIO' | 'CONTACT';
+    title: string;
+    url: string;
+    subtitle?: string;
+    details?: {
+      totalAmount?: number;
+      depositAmount?: number;
+      requireDeposit?: boolean;
+      artworkBasePrice?: number;
+      artworkSlug?: string;
+      artworkTitle?: string;
+      imageUrl?: string;
+      dimensions?: string;
+    };
+  };
+}
+
+export async function aiChatApi(messages: AiChatMessage[]): Promise<AiChatResponse> {
+  const res = await fetch(`${getApiBaseUrl()}/ai/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Trợ lý AI đang bận hoặc phản hồi chậm. Vui lòng thử lại sau.');
+  }
+
+  return await res.json();
+}

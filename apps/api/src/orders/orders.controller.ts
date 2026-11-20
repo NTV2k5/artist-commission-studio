@@ -13,6 +13,8 @@ import { JwtService } from '@nestjs/jwt';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CancelOrderDto } from './dto/cancel-order.dto';
+import { ApproveSketchDto } from './dto/approve-sketch.dto';
+import { RequestRevisionDto } from './dto/request-revision.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '@prisma/client';
@@ -66,5 +68,47 @@ export class OrdersController {
   ) {
     const authUserId = req.user?.id;
     return this.ordersService.cancelOrder(orderCode, dto.reason, authUserId);
+  }
+
+  @Get(':orderCode/messages')
+  @ApiOperation({ summary: 'Get chat and system message history for an order' })
+  async getOrderMessages(@Param('orderCode') orderCode: string) {
+    return this.ordersService.getOrderMessages(orderCode);
+  }
+
+  @Post(':orderCode/approve-sketch')
+  @ApiOperation({ summary: 'Customer approves sketch proposal' })
+  async approveSketch(
+    @Param('orderCode') orderCode: string,
+    @Body() dto: ApproveSketchDto,
+    @Req() req: any,
+  ) {
+    let authUserId = req.user?.id;
+    if (!authUserId && req.headers?.authorization?.startsWith('Bearer ')) {
+      try {
+        const token = req.headers.authorization.split(' ')[1];
+        const payload: any = this.jwtService.decode(token);
+        if (payload?.sub) authUserId = payload.sub;
+      } catch {}
+    }
+    return this.ordersService.approveSketch(orderCode, dto.notes, authUserId);
+  }
+
+  @Post(':orderCode/request-revision')
+  @ApiOperation({ summary: 'Customer requests sketch revision' })
+  async requestRevision(
+    @Param('orderCode') orderCode: string,
+    @Body() dto: RequestRevisionDto,
+    @Req() req: any,
+  ) {
+    let authUserId = req.user?.id;
+    if (!authUserId && req.headers?.authorization?.startsWith('Bearer ')) {
+      try {
+        const token = req.headers.authorization.split(' ')[1];
+        const payload: any = this.jwtService.decode(token);
+        if (payload?.sub) authUserId = payload.sub;
+      } catch {}
+    }
+    return this.ordersService.requestRevision(orderCode, dto.notes, authUserId);
   }
 }
