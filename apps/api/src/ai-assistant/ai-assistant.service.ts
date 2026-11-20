@@ -16,10 +16,10 @@ Phong cách giao tiếp của bạn:
 - Xưng hô: "Tôi" hoặc "Trợ lý nghệ thuật", gọi khách hàng là "Quý khách" hoặc "Bạn".
 
 QUY TẮC CỐT LÕI VỀ GIÁ VÀ DANH MỤC TRANH:
-1. TUYỆT ĐỐI KHÔNG tự bịa đặt giá tiền hay kích thước billable! Khi khách hỏi về giá, chi phí vẽ, diện tích hoặc báo giá, BẮT BUỘC gọi hàm tool \`calculateEstimatePrice\`.
+1. TUYỆT ĐỐI KHÔNG tự bịa đặt giá tiền hay diện tích tính phí! Khi khách hỏi về giá, chi phí vẽ, diện tích hoặc báo giá, BẮT BUỘC gọi hàm tool \`calculateEstimatePrice\`.
 2. Khi khách hỏi tìm tranh, gợi ý tranh cho phòng khách/phòng ngủ/quán cafe, BẮT BUỘC gọi hàm tool \`searchPortfolio\`.
 3. Khi khách hỏi về năng lực của họa sĩ, chất liệu xưởng sử dụng, địa chỉ xưởng hoặc chính sách cọc & phác thảo, gọi tool \`getArtistCapabilities\`.
-4. Sau khi có kết quả tính giá từ tool, hãy giải thích rõ ràng cho khách: Tiền vẽ tranh, diện tích tính phí tối thiểu, khoản cọc bảo đảm theo quy định và mời khách bấm vào nút để vào thẳng trang cấu hình chi tiết.
+4. Sau khi nhận kết quả từ tool, hãy giải thích rõ ràng và tự nhiên cho khách: Chất liệu, diện tích tác phẩm, tổng chi phí dự kiến, khoản đặt cọc bảo đảm và cam kết 02 lượt duyệt phác thảo chì/số miễn phí.
 `.trim();
 
 @Injectable()
@@ -32,12 +32,15 @@ export class AiAssistantService {
   /**
    * Main chat endpoint handler with rate limiting, tool execution and action suggestions
    */
-  async chat(dto: AiChatDto, clientIp: string = 'global'): Promise<{ reply: string; actionSuggestion?: ActionSuggestion }> {
+  async chat(
+    dto: AiChatDto,
+    clientIp: string = 'global',
+  ): Promise<{ reply: string; actionSuggestion?: ActionSuggestion }> {
     // 1. Rate Limiting Check (Max 20 requests per minute)
     this.checkRateLimit(clientIp);
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    const hasValidKey = apiKey && !apiKey.includes('dummy') && apiKey.length > 10;
+    const apiKey = (process.env.GEMINI_API_KEY || '').trim();
+    const hasValidKey = apiKey.length > 10 && !apiKey.includes('dummy');
 
     const latestUserMessage = [...dto.messages].reverse().find((m) => m.role === 'user')?.content || '';
 
@@ -52,47 +55,64 @@ export class AiAssistantService {
       const { GoogleGenAI, Type } = await import('@google/genai');
       const ai = new GoogleGenAI({ apiKey });
 
-      // Tools definition
+      const configuredModel = (process.env.GEMINI_MODEL || 'gemini-2.5-flash')
+        .trim()
+        .replace(/^["']|["']$/g, '');
+
+      // Robust model candidates: try configuredModel, then fallback candidates if new accounts/temporary spike
+      const modelCandidates = [
+        configuredModel,
+        'gemini-3.1-flash-lite',
+        'gemini-3.8-flash',
+        'gemini-2.5-flash',
+      ].filter((v, i, a) => a.indexOf(v) === i);
+
+      // Tools definition matching @google/genai v3.6.1 standards
       const tools: any[] = [
         {
           functionDeclarations: [
             {
               name: 'calculateEstimatePrice',
-              description: 'Tính toán ước tính chi phí đặt vẽ tranh nghệ thuật (sơn dầu, acrylic, màu nước) hoặc tranh tường dựa trên kích thước, chất liệu, độ phức tạp.',
+              description:
+                'Tính toán ước tính chi phí đặt vẽ tranh nghệ thuật (sơn dầu, acrylic, màu nước) hoặc tranh tường dựa trên kích thước, chất liệu, độ phức tạp.',
               parameters: {
                 type: Type.OBJECT,
                 properties: {
                   serviceType: {
                     type: Type.STRING,
-                    description: 'Loại hình: FRAMED_ART (tranh đóng khung treo tường) hoặc WALL_MURAL (tranh bích họa vẽ trực tiếp lên tường)',
+                    description:
+                      'Loại hình: FRAMED_ART (tranh đóng khung treo tường) hoặc WALL_MURAL (tranh bích họa vẽ trực tiếp lên tường)',
                   },
                   widthCm: {
                     type: Type.NUMBER,
-                    description: 'Chiều rộng tranh hoặc tường (cm, ví dụ: 100 cho 1m)',
+                    description: 'Chiều rộng tranh hoặc tường tính bằng centimet (cm, ví dụ: 100 cho 1m, 150 cho 1.5m)',
                   },
                   heightCm: {
                     type: Type.NUMBER,
-                    description: 'Chiều cao tranh hoặc tường (cm, ví dụ: 80 cho 80cm)',
+                    description: 'Chiều cao tranh hoặc tường tính bằng centimet (cm, ví dụ: 150 cho 1.5m, 80 cho 80cm)',
                   },
                   materialSlug: {
                     type: Type.STRING,
-                    description: 'Slug chất liệu: mat-oil, mat-acrylic, mat-watercolor, mat-mural',
+                    description:
+                      'Chất liệu: son-dau-cao-cap (sơn dầu), mau-acrylic-toan-vai (acrylic), mau-nuoc-arches (màu nước), son-tuong-chuyen-dung (bích họa tường)',
                   },
                   complexity: {
                     type: Type.STRING,
-                    description: 'Mức độ phức tạp nét cọ: SIMPLE, MEDIUM, COMPLEX',
+                    description:
+                      'Độ phức tạp nét cọ: SIMPLE (đơn giản, mảng màu phẳng), MEDIUM (chi tiết vừa phải), COMPLEX (chi tiết cao, tả thực tỉ mỉ)',
                   },
                   distanceKm: {
                     type: Type.NUMBER,
-                    description: 'Khoảng cách giao hàng hoặc di chuyển thi công (km, mặc định 0)',
+                    description: 'Khoảng cách giao tranh hoặc di chuyển thi công (km, ví dụ: 10)',
                   },
                 },
-                required: ['serviceType', 'widthCm', 'heightCm', 'materialSlug', 'complexity'],
+                required: ['widthCm', 'heightCm'],
               },
             },
             {
               name: 'searchPortfolio',
-              description: 'Tìm kiếm các tác phẩm mẫu tiêu biểu trong bộ sưu tập của xưởng vẽ theo phong cách, chất liệu, loại hình hoặc từ khóa.',
+              description:
+                'Tìm kiếm các tác phẩm mẫu tiêu biểu trong bộ sưu tập của xưởng vẽ theo phong cách, chất liệu, loại hình hoặc từ khóa.',
               parameters: {
                 type: Type.OBJECT,
                 properties: {
@@ -102,18 +122,21 @@ export class AiAssistantService {
                   },
                   materialSlug: {
                     type: Type.STRING,
-                    description: 'Lọc theo chất liệu: mat-oil, mat-acrylic, mat-watercolor, mat-mural',
+                    description:
+                      'Lọc theo chất liệu: son-dau-cao-cap, mau-acrylic-toan-vai, mau-nuoc-arches, son-tuong-chuyen-dung',
                   },
                   keyword: {
                     type: Type.STRING,
-                    description: 'Từ khóa tìm kiếm (ví dụ: phong cảnh, biển, tropical, hoa, trừu tượng, chân dung)',
+                    description:
+                      'Từ khóa tìm kiếm (ví dụ: phong cảnh, biển, tropical, hoa, trừu tượng, chân dung)',
                   },
                 },
               },
             },
             {
               name: 'getArtistCapabilities',
-              description: 'Lấy thông tin năng lực sáng tác, tiểu sử họa sĩ, xưởng vẽ, danh sách các chất liệu hỗ trợ, chính sách phác thảo và bảo hành.',
+              description:
+                'Lấy thông tin năng lực sáng tác, tiểu sử họa sĩ, xưởng vẽ, danh sách các chất liệu hỗ trợ, chính sách phác thảo và bảo hành.',
               parameters: {
                 type: Type.OBJECT,
                 properties: {},
@@ -129,33 +152,77 @@ export class AiAssistantService {
         parts: [{ text: m.content }],
       }));
 
-      // Call Gemini 2.5 Flash
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents,
-        config: {
-          systemInstruction: SYSTEM_PROMPT,
-          tools,
-        },
-      });
+      // Generate content with model candidate fallback
+      let response: any = null;
+      let activeModel = configuredModel;
+
+      for (const m of modelCandidates) {
+        try {
+          response = await ai.models.generateContent({
+            model: m,
+            contents,
+            config: {
+              systemInstruction: SYSTEM_PROMPT,
+              tools,
+            },
+          });
+          activeModel = m;
+          break;
+        } catch (err: any) {
+          if (err?.status === 404 || err?.message?.includes('404') || err?.status === 503) {
+            this.logger.warn(`Model ${m} returned ${err?.status || 'status'}, trying next candidate...`);
+            continue;
+          }
+          throw err;
+        }
+      }
+
+      if (!response) {
+        throw new Error('Không thể kết nối tới mô hình Gemini');
+      }
 
       let actionSuggestion: ActionSuggestion | undefined;
       const functionCalls = response.functionCalls;
 
       if (functionCalls && functionCalls.length > 0) {
         const fc = functionCalls[0];
-        this.logger.log(`Gemini invoked tool: ${fc.name} with args: ${JSON.stringify(fc.args)}`);
+        this.logger.log(`Gemini (${activeModel}) invoked tool: ${fc.name} with args: ${JSON.stringify(fc.args)}`);
 
         let toolResult: any;
+        let naturalFallbackReply = '';
 
         if (fc.name === 'calculateEstimatePrice') {
           const res = await this.executeCalculateEstimatePrice(fc.args as any);
           toolResult = res.pricing;
           actionSuggestion = res.actionSuggestion;
+
+          naturalFallbackReply = `
+Kính gửi Quý khách! Trợ lý Nghệ thuật xin gửi dự toán chi phí tác phẩm theo yêu cầu:
+
+- **Loại hình:** ${res.pricing.serviceType === ServiceType.WALL_MURAL ? 'Bích họa tường nghệ thuật' : 'Tranh sơn dầu đóng khung cao cấp'}
+- **Chất liệu:** ${res.pricing.materialName}
+- **Kích thước:** ${res.pricing.widthCm} × ${res.pricing.heightCm} cm (Diện tích: **${res.pricing.billableAreaM2} m²**)
+- **Độ phức tạp nét cọ:** ${res.pricing.complexity === Complexity.COMPLEX ? 'Chi tiết cao (tả thực tỉ mỉ)' : res.pricing.complexity === Complexity.SIMPLE ? 'Đơn giản' : 'Vừa phải'}
+- **Tổng chi phí ước tính:** **${res.pricing.totalAmount.toLocaleString('vi-VN')} VNĐ**
+${res.pricing.requireDeposit ? `- **Khoản đặt cọc bảo đảm (${res.pricing.depositPercent}%):** **${res.pricing.depositAmount.toLocaleString('vi-VN')} VNĐ**` : '- **Đặt cọc:** Không yêu cầu cọc'}
+${res.pricing.shippingOrTravelFee > 0 ? `- **Phí vận chuyển / đi lại (${res.pricing.distanceKm} km):** ${res.pricing.shippingOrTravelFee.toLocaleString('vi-VN')} VNĐ` : ''}
+
+Quy trình sáng tác tại Quoc Tuan Art Atelier luôn bao gồm **02 lượt duyệt phác thảo chi tiết** (chì hoặc số) trước khi họa sĩ chính thức lên màu để bảo đảm tác phẩm đáp ứng 100% mong muốn của Quý khách.
+
+Quý khách có thể bấm vào thẻ gợi ý bên dưới để xem chi tiết cấu hình và đặt vẽ ngay!
+`.trim();
         } else if (fc.name === 'searchPortfolio') {
           const res = await this.executeSearchPortfolio(fc.args as any);
           toolResult = res.artworks;
           actionSuggestion = res.actionSuggestion;
+
+          naturalFallbackReply = `
+Xưởng họa sĩ Quốc Tuấn xin gửi tới Quý khách các tác phẩm tiêu biểu phù hợp với phong cách tìm kiếm:
+
+${res.artworks.map((a: any) => `• **${a.title}** (${a.material?.name || 'Tranh nghệ thuật'}) — *${a.description || 'Tác phẩm độc bản'}*`).join('\n')}
+
+Mỗi tác phẩm đều được chế tác độc bản, phối màu hài hòa và có tính năng mô phỏng treo tường (Wall Preview Mockup) giúp Quý khách dễ dàng hình dung trong không gian nội thất.
+`.trim();
         } else if (fc.name === 'getArtistCapabilities') {
           toolResult = await this.executeGetArtistCapabilities();
           actionSuggestion = {
@@ -164,42 +231,71 @@ export class AiAssistantService {
             url: '/about',
             subtitle: 'Xem hồ sơ năng lực & kinh nghiệm triển lãm',
           };
+
+          naturalFallbackReply = `
+Họa sĩ Quốc Tuấn tốt nghiệp Đại học Mỹ thuật Việt Nam với hơn ${toolResult.experienceYears} năm kinh nghiệm sáng tác chuyên sâu về tranh sơn dầu, acrylic và bích họa tường khổ lớn.
+Xưởng hiện phục vụ 4 dòng chất liệu cao cấp (Sơn dầu châu Âu trên toan linen, Acrylic không mùi, Màu nước Arches Pháp và Sơn tường phủ nano chuyên dụng).
+Địa chỉ Studio: ${toolResult.studioAddress || 'Hà Nội'}.
+`.trim();
         }
 
-        // Return tool execution back to model for final natural answer
-        const followUpResponse = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: [
+        // Try returning tool execution back to model for final natural answer
+        try {
+          const followUpContents = [
             ...contents,
-            { role: 'model', parts: (response as any).candidates?.[0]?.content?.parts || [] },
+            {
+              role: 'model',
+              parts: response.candidates?.[0]?.content?.parts || [
+                {
+                  functionCall: {
+                    name: fc.name,
+                    args: fc.args,
+                  },
+                },
+              ],
+            },
             {
               role: 'user',
               parts: [
                 {
                   functionResponse: {
                     name: fc.name,
-                    response: { result: toolResult },
+                    response: { output: toolResult },
                   },
                 },
               ],
             },
-          ],
-          config: {
-            systemInstruction: SYSTEM_PROMPT,
-          },
-        });
+          ];
 
-        const reply = followUpResponse.text || 'Tôi đã tra cứu thông tin theo yêu cầu của Quý khách.';
-        return { reply, actionSuggestion };
+          const followUpResponse = await ai.models.generateContent({
+            model: activeModel,
+            contents: followUpContents,
+            config: {
+              systemInstruction: SYSTEM_PROMPT,
+            },
+          });
+
+          if (followUpResponse.text) {
+            return { reply: followUpResponse.text, actionSuggestion };
+          }
+        } catch (followUpErr) {
+          this.logger.warn(`Follow-up natural response skipped, returning structured result: ${(followUpErr as any)?.message}`);
+        }
+
+        return { reply: naturalFallbackReply, actionSuggestion };
       }
 
       return {
-        reply: response.text || 'Cảm ơn bạn đã nhắn tin. Tôi có thể hỗ trợ gì thêm về các tác phẩm của Họa sĩ Quốc Tuấn?',
+        reply:
+          response.text ||
+          'Cảm ơn bạn đã nhắn tin. Tôi có thể hỗ trợ gì thêm về các tác phẩm của Họa sĩ Quốc Tuấn?',
       };
-    } catch (err: any) {
-      this.logger.error(`Gemini API call failed: ${err.message}`, err.stack);
-      // Fallback gracefully instead of crashing
-      return this.handleFallback(latestUserMessage, true);
+    } catch (error: any) {
+      this.logger.error('Gemini API Error:', error?.message || error);
+      if (error?.stack) {
+        this.logger.error(error.stack);
+      }
+      return this.handleFallback(latestUserMessage);
     }
   }
 
@@ -207,35 +303,87 @@ export class AiAssistantService {
    * Tool: calculateEstimatePrice
    */
   private async executeCalculateEstimatePrice(args: {
-    serviceType: string;
+    serviceType?: string;
     widthCm: number;
     heightCm: number;
-    materialSlug: string;
-    complexity: string;
+    materialSlug?: string;
+    complexity?: string;
     distanceKm?: number;
   }) {
-    const serviceType =
-      args.serviceType === 'WALL_MURAL' ? ServiceType.WALL_MURAL : ServiceType.FRAMED_ART;
+    // 1. Determine service type
+    const isMural =
+      args.serviceType === 'WALL_MURAL' ||
+      args.serviceType?.toLowerCase().includes('mural') ||
+      args.serviceType?.toLowerCase().includes('tường');
 
-    // Resolve material
-    let material = await this.prisma.material.findFirst({
-      where: { slug: args.materialSlug },
-    });
+    const serviceType = isMural ? ServiceType.WALL_MURAL : ServiceType.FRAMED_ART;
+
+    // 2. Resolve material with smart matching
+    const query = (args.materialSlug || '').toLowerCase();
+    let material: any = null;
+
+    if (query) {
+      material = await this.prisma.material.findFirst({
+        where: {
+          OR: [
+            { slug: query },
+            { slug: { contains: query, mode: 'insensitive' } },
+            { name: { contains: query, mode: 'insensitive' } },
+          ],
+        },
+      });
+    }
+
+    if (!material) {
+      if (query.includes('oil') || query.includes('dầu')) {
+        material = await this.prisma.material.findFirst({ where: { slug: 'son-dau-cao-cap' } });
+      } else if (query.includes('acrylic')) {
+        material = await this.prisma.material.findFirst({ where: { slug: 'mau-acrylic-toan-vai' } });
+      } else if (query.includes('water') || query.includes('nước')) {
+        material = await this.prisma.material.findFirst({ where: { slug: 'mau-nuoc-arches' } });
+      } else if (query.includes('mural') || query.includes('tường')) {
+        material = await this.prisma.material.findFirst({ where: { slug: 'son-tuong-chuyen-dung' } });
+      }
+    }
+
     if (!material) {
       material = await this.prisma.material.findFirst({
         where: { serviceType, isActive: true },
       });
     }
 
+    // 3. Resolve complexity
+    let complexity = Complexity.MEDIUM;
+    const compStr = (args.complexity || '').toUpperCase();
+    if (
+      compStr.includes('COMPLEX') ||
+      compStr.includes('HIGH') ||
+      compStr.includes('CAO') ||
+      compStr.includes('TỈ MỈ')
+    ) {
+      complexity = Complexity.COMPLEX;
+    } else if (
+      compStr.includes('SIMPLE') ||
+      compStr.includes('LOW') ||
+      compStr.includes('ĐƠN GIẢN')
+    ) {
+      complexity = Complexity.SIMPLE;
+    }
+
     const config = await this.prisma.artistStudioConfig.findFirst();
+
+    const widthCm = Number(args.widthCm) || 80;
+    const heightCm = Number(args.heightCm) || 120;
+    const distanceKm = Number(args.distanceKm) || 0;
 
     const pricing = calculateCommissionPrice({
       serviceType,
-      widthCm: Number(args.widthCm) || 80,
-      heightCm: Number(args.heightCm) || 120,
-      materialBasePricePerM2: material?.basePricePerM2 || 1500000,
-      complexity: (args.complexity as Complexity) || Complexity.MEDIUM,
-      distanceKm: Number(args.distanceKm) || 0,
+      widthCm,
+      heightCm,
+      materialBasePricePerM2:
+        material?.basePricePerM2 || (serviceType === ServiceType.WALL_MURAL ? 1200000 : 3200000),
+      complexity,
+      distanceKm,
       frameOption: serviceType === ServiceType.FRAMED_ART ? FrameOption.WOOD_MINIMAL : undefined,
       config: config
         ? {
@@ -255,19 +403,31 @@ export class AiAssistantService {
 
     const actionSuggestion: ActionSuggestion = {
       type: 'COMMISSION',
-      title: `Cấu hình & Đặt vẽ ${serviceType === ServiceType.FRAMED_ART ? 'Tranh đóng khung' : 'Tranh tường'} (${args.widthCm}x${args.heightCm}cm)`,
-      subtitle: `Ước tính: ${pricing.totalAmount.toLocaleString('vi-VN')} VNĐ ${pricing.requireDeposit ? `(Tiền cọc: ${pricing.depositAmount.toLocaleString('vi-VN')} đ)` : ''}`,
-      url: `/commission?serviceType=${serviceType}&material=${material?.slug || 'mat-oil'}&width=${args.widthCm}&height=${args.heightCm}&complexity=${args.complexity}`,
+      title: `Cấu hình & Đặt vẽ ${serviceType === ServiceType.FRAMED_ART ? 'Tranh đóng khung' : 'Tranh bích họa'} (${widthCm} × ${heightCm} cm)`,
+      subtitle: `Dự toán: ${pricing.totalAmount.toLocaleString('vi-VN')} VNĐ ${pricing.requireDeposit ? `(Tiền cọc: ${pricing.depositAmount.toLocaleString('vi-VN')} đ)` : ''}`,
+      url: `/commission?serviceType=${serviceType}&material=${material?.slug || 'son-dau-cao-cap'}&width=${widthCm}&height=${heightCm}&complexity=${complexity}`,
       details: {
         totalAmount: pricing.totalAmount,
         depositAmount: pricing.depositAmount,
         requireDeposit: pricing.requireDeposit,
         artworkBasePrice: pricing.artworkBasePrice,
-        dimensions: `${args.widthCm} × ${args.heightCm} cm`,
+        dimensions: `${widthCm} × ${heightCm} cm`,
       },
     };
 
-    return { pricing, actionSuggestion };
+    return {
+      pricing: {
+        ...pricing,
+        materialName: material?.name || 'Sơn dầu cao cấp',
+        complexity,
+        serviceType,
+        widthCm,
+        heightCm,
+        distanceKm,
+        depositPercent: config?.depositPercent || 40,
+      },
+      actionSuggestion,
+    };
   }
 
   /**
@@ -345,11 +505,10 @@ export class AiAssistantService {
   }
 
   /**
-   * Fallback logic when GEMINI_API_KEY is not configured or in case of upstream error
+   * Fallback logic when GEMINI_API_KEY is not configured
    */
   private async handleFallback(
     message: string,
-    isError: boolean = false,
   ): Promise<{ reply: string; actionSuggestion?: ActionSuggestion }> {
     const lower = message.toLowerCase();
 
@@ -367,7 +526,7 @@ export class AiAssistantService {
       const serviceType = isMural ? 'WALL_MURAL' : 'FRAMED_ART';
       const width = isMural ? 300 : 80;
       const height = isMural ? 250 : 120;
-      const materialSlug = isMural ? 'mat-mural' : 'mat-oil';
+      const materialSlug = isMural ? 'son-tuong-chuyen-dung' : 'son-dau-cao-cap';
 
       const { pricing, actionSuggestion } = await this.executeCalculateEstimatePrice({
         serviceType,
@@ -379,7 +538,6 @@ export class AiAssistantService {
 
       const reply = `
 Chào bạn! Tôi là Trợ lý Nghệ thuật của Họa sĩ Quốc Tuấn.
-${isError ? '*(Đang kết nối lại API thông minh)*' : '*(Hệ thống đang hoạt động ở chế độ mô phỏng an toàn - chưa cài đặt GEMINI_API_KEY trong file .env)*'}
 
 Dựa trên thông số tiêu chuẩn bạn quan tâm:
 - **Loại hình:** ${isMural ? 'Bích họa tường nghệ thuật' : 'Tranh sơn dầu đóng khung'}
@@ -425,7 +583,6 @@ Mỗi tác phẩm đều được bảo đảm tính độc bản, phối màu h
     // Default polite artist consultation guide
     const reply = `
 Kính chào Quý khách! Tôi là Trợ lý Nghệ thuật của **Họa sĩ Quốc Tuấn (Art Atelier)**.
-${!isError ? '*(Ghi chú: Để kích hoạt đầy đủ trí tuệ nhân tạo Gemini 2.5 Flash, vui lòng thêm `GEMINI_API_KEY` từ Google AI Studio vào file `.env`)*\n' : ''}
 Tôi có thể đồng hành cùng Quý khách trong các nội dung:
 1. **Tư vấn chất liệu:** Sơn dầu truyền thống (độ sâu màu cao), Acrylic (hiện đại, nhanh khô), Màu nước Arches Pháp hoặc Sơn bích họa tường chuyên dụng.
 2. **Báo giá & Dự toán ngân sách:** Tính toán chính xác theo diện tích m², độ phức tạp nét cọ và khoảng cách vận chuyển/thi công.
