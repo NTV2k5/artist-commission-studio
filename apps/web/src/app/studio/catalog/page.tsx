@@ -18,6 +18,7 @@ import {
   ExternalLink,
   Save,
   CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   fetchStudioArtworks,
@@ -34,11 +35,15 @@ import {
 } from '@/lib/api';
 
 export default function StudioCatalogPage() {
-  const { data: session } = useSession();
-  const token = (session?.user as any)?.backendToken;
+  const { data: session, status } = useSession();
+  const token =
+    (session?.user as any)?.backendToken ||
+    (session?.user as any)?.accessToken ||
+    (session as any)?.accessToken;
 
   const [activeTab, setActiveTab] = useState<'artworks' | 'materials' | 'config'>('artworks');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Tab 1: Artworks State
   const [artworks, setArtworks] = useState<any[]>([]);
@@ -83,6 +88,7 @@ export default function StudioCatalogPage() {
   const loadAll = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const [artworksRes, materialsRes, configRes] = await Promise.all([
         fetchStudioArtworks(token),
         fetchStudioMaterials(token),
@@ -93,16 +99,20 @@ export default function StudioCatalogPage() {
       setConfigForm(configRes);
     } catch (err: any) {
       console.warn('Failed to load catalog data:', err);
+      setError(err.message || 'Không thể tải dữ liệu CMS & Bảng giá');
     } finally {
       setLoading(false);
     }
   }, [token]);
 
   useEffect(() => {
-    if (token) {
+    if (status === 'authenticated') {
       loadAll();
+    } else if (status === 'unauthenticated') {
+      setLoading(false);
+      setError('Vui lòng đăng nhập với tài khoản Họa sĩ để quản lý danh mục.');
     }
-  }, [token, loadAll]);
+  }, [status, loadAll]);
 
   // Handle Image Upload for Artwork
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -260,7 +270,19 @@ export default function StudioCatalogPage() {
       {loading ? (
         <div className="py-20 flex flex-col items-center justify-center text-center space-y-3">
           <Loader2 className="w-8 h-8 animate-spin text-[#3E5C6E]" />
-          <p className="text-xs text-zinc-500 font-serif">Đang tải dữ liệu CMS...</p>
+          <p className="text-xs text-zinc-500 font-sans">Đang tải dữ liệu CMS...</p>
+        </div>
+      ) : error ? (
+        <div className="bg-white p-8 rounded-2xl border border-zinc-200 text-center space-y-4 max-w-lg mx-auto">
+          <AlertTriangle className="w-8 h-8 text-rose-500 mx-auto" />
+          <p className="text-xs text-zinc-600 font-sans">{error}</p>
+          <button
+            type="button"
+            onClick={loadAll}
+            className="px-4 py-2 bg-[#18181B] text-white text-xs font-semibold rounded-xl"
+          >
+            Thử Lại
+          </button>
         </div>
       ) : activeTab === 'artworks' ? (
         /* TAB 1: ARTWORKS PORTFOLIO CMS */

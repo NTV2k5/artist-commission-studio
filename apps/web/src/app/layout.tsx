@@ -7,20 +7,23 @@ import { FloatingContactDock } from '@/components/floating/FloatingContactDock';
 const cormorant = Cormorant_Garamond({
   subsets: ['latin', 'vietnamese'],
   weight: ['400', '500', '600', '700'],
-  variable: '--font-cormorant',
+  variable: '--font-serif',
   display: 'swap',
 });
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin', 'vietnamese'],
   weight: ['400', '500', '600', '700'],
-  variable: '--font-jakarta',
+  variable: '--font-sans',
   display: 'swap',
 });
 
 export const metadata: Metadata = {
   title: 'Artist Commission Studio | Họa sĩ Quốc Tuấn',
   description: 'Xưởng nghệ thuật & Không gian đặt vẽ tranh sơn dầu, acrylic và tranh tường nghệ thuật độc bản theo yêu cầu.',
+  icons: {
+    icon: '/icon.svg',
+  },
 };
 
 export default function RootLayout({

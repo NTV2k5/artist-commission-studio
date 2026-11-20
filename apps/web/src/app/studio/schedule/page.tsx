@@ -18,15 +18,20 @@ import {
 import { fetchStudioOrders } from '@/lib/api';
 
 export default function StudioSchedulePage() {
-  const { data: session } = useSession();
-  const token = (session?.user as any)?.backendToken;
+  const { data: session, status } = useSession();
+  const token =
+    (session?.user as any)?.backendToken ||
+    (session?.user as any)?.accessToken ||
+    (session as any)?.accessToken;
 
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadMuralOrders = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await fetchStudioOrders(
         {
           serviceType: 'WALL_MURAL',
@@ -35,18 +40,22 @@ export default function StudioSchedulePage() {
         token,
       );
       setOrders(res.items || []);
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Failed to load mural schedule:', err);
+      setError(err.message || 'Không thể tải lịch thi công bích họa');
     } finally {
       setLoading(false);
     }
   }, [token]);
 
   useEffect(() => {
-    if (token) {
+    if (status === 'authenticated') {
       loadMuralOrders();
+    } else if (status === 'unauthenticated') {
+      setLoading(false);
+      setError('Vui lòng đăng nhập với tài khoản Họa sĩ để xem lịch thi công.');
     }
-  }, [token, loadMuralOrders]);
+  }, [status, loadMuralOrders]);
 
   // Identify all scheduled wall murals
   const scheduledOrders = orders.filter(
@@ -111,7 +120,19 @@ export default function StudioSchedulePage() {
       {loading ? (
         <div className="py-20 flex flex-col items-center justify-center text-center space-y-3">
           <Loader2 className="w-8 h-8 animate-spin text-[#3E5C6E]" />
-          <p className="text-xs text-zinc-500 font-serif">Đang kiểm tra lịch công trình...</p>
+          <p className="text-xs text-zinc-500 font-sans">Đang kiểm tra lịch công trình...</p>
+        </div>
+      ) : error ? (
+        <div className="bg-white p-8 rounded-2xl border border-zinc-200 text-center space-y-4 max-w-lg mx-auto">
+          <AlertTriangle className="w-8 h-8 text-rose-500 mx-auto" />
+          <p className="text-xs text-zinc-600 font-sans">{error}</p>
+          <button
+            type="button"
+            onClick={loadMuralOrders}
+            className="px-4 py-2 bg-[#18181B] text-white text-xs font-semibold rounded-xl"
+          >
+            Thử Lại
+          </button>
         </div>
       ) : scheduledOrders.length === 0 ? (
         <div className="bg-white p-12 rounded-2xl border border-zinc-200 text-center space-y-3">
