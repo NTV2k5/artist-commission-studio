@@ -6,6 +6,10 @@ build/
 .turbo/
 *.tsbuildinfo
 
+# Uploads
+apps/api/uploads/*
+!apps/api/uploads/.gitkeep
+
 # Environment & Secrets
 .env
 .env.local

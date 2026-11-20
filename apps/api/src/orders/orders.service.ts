@@ -51,12 +51,24 @@ export class OrdersService {
    * Creates an order with strict Zero Client-Side Price Trust
    */
   async createOrder(dto: CreateOrderDto, authUserId?: string) {
-    // 1. Fetch Material
-    const material = await this.prisma.material.findUnique({
-      where: { id: dto.materialId },
+    // 1. Fetch Material by ID, slug, or serviceType fallback
+    let material = await this.prisma.material.findFirst({
+      where: {
+        OR: [
+          { id: dto.materialId },
+          { slug: dto.materialId },
+        ],
+      },
     });
+
     if (!material) {
-      throw new NotFoundException(`Material with id "${dto.materialId}" not found`);
+      material = await this.prisma.material.findFirst({
+        where: { serviceType: dto.serviceType },
+      });
+    }
+
+    if (!material) {
+      throw new NotFoundException(`Chất liệu vẽ không tồn tại trên hệ thống`);
     }
 
     // 2. Fetch Studio Configuration for dynamic pricing params
@@ -120,7 +132,23 @@ export class OrdersService {
       });
     }
 
-    // 5. Generate Order Code & Initial Status
+    // 5. Resolve valid ArtworkTemplate if requested
+    let resolvedTemplateId: string | null = null;
+    if (dto.templateId) {
+      const template = await this.prisma.artworkTemplate.findFirst({
+        where: {
+          OR: [
+            { id: dto.templateId },
+            { slug: dto.templateId },
+          ],
+        },
+      });
+      if (template) {
+        resolvedTemplateId = template.id;
+      }
+    }
+
+    // 6. Generate Order Code & Initial Status
     const orderCode = await this.generateUniqueOrderCode();
     // If customer uploaded custom image and no template selected, requires artist review quote first
     const initialStatus = isCustom
@@ -132,7 +160,7 @@ export class OrdersService {
         orderCode,
         customerId: customer.id,
         serviceType: dto.serviceType,
-        templateId: dto.templateId || null,
+        templateId: resolvedTemplateId,
         customReferenceUrls: dto.customReferenceUrls || [],
         widthCm: dto.widthCm,
         heightCm: dto.heightCm,

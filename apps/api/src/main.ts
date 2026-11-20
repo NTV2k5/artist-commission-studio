@@ -19,10 +19,18 @@ async function bootstrap() {
     }),
   );
 
+  // Enable CORS with full method and header support for seamless client requests
   app.enableCors({
     origin: true,
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'Origin',
+      'X-Requested-With',
+    ],
   });
 
   // Serve uploaded files statically at /uploads
@@ -42,7 +50,7 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.PORT || 4000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`🚀 @studio/api is running on: http://localhost:${port}/api/v1`);
   console.log(`📚 Swagger documentation available at: http://localhost:${port}/api/docs`);
   console.log(`📁 Static uploads served from: http://localhost:${port}/uploads`);
