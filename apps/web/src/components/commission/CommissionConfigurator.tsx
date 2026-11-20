@@ -153,6 +153,70 @@ export function CommissionConfigurator({
     }
   }, [session, customerName, customerEmail]);
 
+  // Save draft configuration to sessionStorage so user never loses options across login/register
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const draft = {
+          serviceType,
+          isCustomReference,
+          selectedTemplateSlug,
+          customReferenceUrls,
+          widthCm,
+          heightCm,
+          selectedMaterialId,
+          complexity,
+          frameOption,
+          distanceKm,
+        };
+        sessionStorage.setItem('commission_draft', JSON.stringify(draft));
+      } catch {
+        // ignore storage errors
+      }
+    }
+  }, [
+    serviceType,
+    isCustomReference,
+    selectedTemplateSlug,
+    customReferenceUrls,
+    widthCm,
+    heightCm,
+    selectedMaterialId,
+    complexity,
+    frameOption,
+    distanceKm,
+  ]);
+
+  // Restore draft configuration on mount if no explicit url params
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hasUrlParams =
+        searchParams.get('template') || searchParams.get('serviceType') || searchParams.get('materialId');
+      if (!hasUrlParams) {
+        try {
+          const raw = sessionStorage.getItem('commission_draft');
+          if (raw) {
+            const draft = JSON.parse(raw);
+            if (draft.serviceType) setServiceType(draft.serviceType);
+            if (typeof draft.isCustomReference === 'boolean') setIsCustomReference(draft.isCustomReference);
+            if (draft.selectedTemplateSlug) setSelectedTemplateSlug(draft.selectedTemplateSlug);
+            if (Array.isArray(draft.customReferenceUrls) && draft.customReferenceUrls.length > 0) {
+              setCustomReferenceUrls(draft.customReferenceUrls);
+            }
+            if (draft.widthCm) setWidthCm(draft.widthCm);
+            if (draft.heightCm) setHeightCm(draft.heightCm);
+            if (draft.selectedMaterialId) setSelectedMaterialId(draft.selectedMaterialId);
+            if (draft.complexity) setComplexity(draft.complexity);
+            if (draft.frameOption) setFrameOption(draft.frameOption);
+            if (typeof draft.distanceKm === 'number') setDistanceKm(draft.distanceKm);
+          }
+        } catch {
+          // ignore parsing errors
+        }
+      }
+    }
+  }, [searchParams]);
+
   // Selected material object
   const currentMaterial = useMemo(() => {
     return materials.find((m) => m.id === selectedMaterialId) || availableMaterials[0];
@@ -289,6 +353,15 @@ export function CommissionConfigurator({
         },
         session?.user?.backendToken
       );
+
+      // Clear draft on successful order placement
+      if (typeof window !== 'undefined') {
+        try {
+          sessionStorage.removeItem('commission_draft');
+        } catch {
+          // ignore
+        }
+      }
 
       // Redirect to Order Detail Room with dynamic VietQR
       router.push(`/orders/${order.orderCode}`);
@@ -769,21 +842,21 @@ export function CommissionConfigurator({
             <div className="space-y-3.5 text-xs font-light text-zinc-300">
               <div className="flex justify-between">
                 <span>Diện tích tính phí:</span>
-                <span className="font-mono text-white font-medium">
+                <span className="font-sans font-semibold tabular-nums text-white">
                   {pricing.billableAreaM2} m² ({widthCm} × {heightCm} cm)
                 </span>
               </div>
 
               <div className="flex justify-between">
                 <span>Chất liệu & Độ khó:</span>
-                <span className="font-mono text-white">
+                <span className="font-sans text-white">
                   {currentMaterial?.name || 'Sơn dầu'} (×{pricing.complexityMultiplier})
                 </span>
               </div>
 
               <div className="flex justify-between">
                 <span>Tiền vẽ tranh gốc:</span>
-                <span className="font-mono text-white font-medium">
+                <span className="font-sans font-bold tabular-nums text-white">
                   {pricing.artworkBasePrice.toLocaleString('vi-VN')} đ
                 </span>
               </div>
@@ -791,7 +864,7 @@ export function CommissionConfigurator({
               {serviceType === ServiceType.FRAMED_ART ? (
                 <div className="flex justify-between">
                   <span>Tiền đóng khung hoàn thiện:</span>
-                  <span className="font-mono text-white font-medium">
+                  <span className="font-sans font-bold tabular-nums text-white">
                     {pricing.framePrice.toLocaleString('vi-VN')} đ
                   </span>
                 </div>
@@ -799,7 +872,7 @@ export function CommissionConfigurator({
                 pricing.siteSurcharge > 0 && (
                   <div className="flex justify-between text-amber-300">
                     <span>Phụ phí giàn giáo ({heightCm}cm):</span>
-                    <span className="font-mono font-medium">
+                    <span className="font-sans font-bold tabular-nums">
                       {pricing.siteSurcharge.toLocaleString('vi-VN')} đ
                     </span>
                   </div>
@@ -810,7 +883,7 @@ export function CommissionConfigurator({
                 <span>
                   {serviceType === ServiceType.FRAMED_ART ? 'Phí giao hàng & đóng hòm gỗ:' : 'Phí di chuyển thi công:'}
                 </span>
-                <span className="font-mono text-white font-medium">
+                <span className="font-sans font-bold tabular-nums text-white">
                   {pricing.shippingOrTravelFee.toLocaleString('vi-VN')} đ
                 </span>
               </div>
@@ -822,8 +895,8 @@ export function CommissionConfigurator({
                 <span className="text-xs uppercase tracking-wider text-zinc-400">
                   Tổng Chi Phí Dự Kiến:
                 </span>
-                <span className="font-serif text-3xl sm:text-4xl text-white font-normal">
-                  {pricing.totalAmount.toLocaleString('vi-VN')} <span className="text-sm font-sans">VNĐ</span>
+                <span className="font-sans text-3xl sm:text-4xl text-white font-bold tabular-nums tracking-tight">
+                  {pricing.totalAmount.toLocaleString('vi-VN')} <span className="text-sm font-sans font-normal">VNĐ</span>
                 </span>
               </div>
 
@@ -835,13 +908,13 @@ export function CommissionConfigurator({
                       <ShieldCheck className="w-3.5 h-3.5 text-artisan" />
                       <span>Khoản Cọc Bắt Buộc ({studioConfig.depositPercent}%):</span>
                     </span>
-                    <span className="font-mono font-bold text-white text-sm">
+                    <span className="font-sans font-bold text-white text-sm tabular-nums tracking-tight">
                       {pricing.depositAmount.toLocaleString('vi-VN')} đ
                     </span>
                   </div>
                   <div className="flex justify-between text-[11px] text-zinc-400 pt-1">
                     <span>Số tiền thanh toán khi nhận tranh/nghiệm thu:</span>
-                    <span className="font-mono text-zinc-300">
+                    <span className="font-sans font-semibold tabular-nums text-zinc-300">
                       {pricing.remainingAmount.toLocaleString('vi-VN')} đ
                     </span>
                   </div>
@@ -935,7 +1008,7 @@ export function CommissionConfigurator({
               <div className="p-4 bg-[#F4F4F5] rounded-xl border border-zinc-200/80 space-y-2">
                 <div className="flex justify-between font-semibold text-zinc-800">
                   <span>{serviceType === ServiceType.FRAMED_ART ? 'Tranh đóng khung' : 'Bích họa tường'} ({widthCm}x{heightCm}cm)</span>
-                  <span className="font-mono text-zinc-900">{pricing.totalAmount.toLocaleString('vi-VN')} đ</span>
+                  <span className="font-sans font-bold tabular-nums text-zinc-900">{pricing.totalAmount.toLocaleString('vi-VN')} đ</span>
                 </div>
                 <div className="text-[11px] text-zinc-500">
                   Chất liệu: {currentMaterial?.name} &bull; Độ khó: {complexity}
@@ -943,7 +1016,7 @@ export function CommissionConfigurator({
                 {pricing.requireDeposit && (
                   <div className="pt-1 border-t border-zinc-200 flex justify-between text-amber-700 font-semibold text-xs">
                     <span>Khoản cọc kích hoạt đơn ({studioConfig.depositPercent}%):</span>
-                    <span className="font-mono">{pricing.depositAmount.toLocaleString('vi-VN')} đ</span>
+                    <span className="font-sans font-bold tabular-nums">{pricing.depositAmount.toLocaleString('vi-VN')} đ</span>
                   </div>
                 )}
               </div>

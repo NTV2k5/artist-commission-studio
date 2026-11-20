@@ -13,8 +13,11 @@ interface CanvasLoupeProps {
 export function CanvasLoupe({ src, alt, zoomLevel = 2.5 }: CanvasLoupeProps) {
   const [showMagnifier, setShowMagnifier] = useState(false);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
-  const [bgPos, setBgPos] = useState({ x: 0, y: 0 });
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const magnifierSize = 160;
+  const lensRadius = magnifierSize / 2;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
@@ -30,14 +33,14 @@ export function CanvasLoupe({ src, alt, zoomLevel = 2.5 }: CanvasLoupeProps) {
     }
 
     setCursorPos({ x, y });
-
-    // Calculate background position percentage
-    const bgX = (x / width) * 100;
-    const bgY = (y / height) * 100;
-    setBgPos({ x: bgX, y: bgY });
+    setContainerSize({ width, height });
   };
 
-  const magnifierSize = 160;
+  // Background math for accurate 2.5x magnification without inverted scaling
+  const bgWidth = containerSize.width * zoomLevel;
+  const bgHeight = containerSize.height * zoomLevel;
+  const bgX = -(cursorPos.x * zoomLevel - lensRadius);
+  const bgY = -(cursorPos.y * zoomLevel - lensRadius);
 
   return (
     <div className="relative space-y-2">
@@ -58,19 +61,19 @@ export function CanvasLoupe({ src, alt, zoomLevel = 2.5 }: CanvasLoupeProps) {
         />
 
         {/* Magnifier Lens */}
-        {showMagnifier && (
+        {showMagnifier && containerSize.width > 0 && (
           <div
-            className="absolute pointer-events-none rounded-full border-2 border-white/80 shadow-2xl z-30 overflow-hidden"
+            className="absolute pointer-events-none rounded-full border-2 border-white/90 shadow-2xl z-30 overflow-hidden"
             style={{
               width: `${magnifierSize}px`,
               height: `${magnifierSize}px`,
-              top: `${cursorPos.y - magnifierSize / 2}px`,
-              left: `${cursorPos.x - magnifierSize / 2}px`,
+              top: `${cursorPos.y - lensRadius}px`,
+              left: `${cursorPos.x - lensRadius}px`,
               backgroundImage: `url(${src})`,
               backgroundRepeat: 'no-repeat',
-              backgroundSize: `${zoomLevel * 100}%`,
-              backgroundPosition: `${bgPos.x}% ${bgPos.y}%`,
-              boxShadow: '0 0 20px rgba(0,0,0,0.4)',
+              backgroundSize: `${bgWidth}px ${bgHeight}px`,
+              backgroundPosition: `${bgX}px ${bgY}px`,
+              boxShadow: '0 0 25px rgba(0,0,0,0.5)',
             }}
           />
         )}

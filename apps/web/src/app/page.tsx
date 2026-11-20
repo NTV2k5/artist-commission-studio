@@ -171,7 +171,7 @@ export default async function HomePage() {
             {/* The Interactive Slider */}
             <BeforeAfterSlider
               beforeImage="https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1600&q=80"
-              afterImage="https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=1600&q=80"
+              afterImage="https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=1600&q=80"
               beforeLabel="Hiện trạng tường thô căn hộ"
               afterLabel="Bích họa Tropical hoàn thiện"
               title="Dự án Bích Họa Tropical Contemporary"
@@ -214,7 +214,7 @@ export default async function HomePage() {
                   </div>
                   <div className="pt-4 border-t border-hairline flex items-center justify-between text-xs">
                     <span className="text-charcoal-muted font-light">Đơn giá tham khảo:</span>
-                    <span className="font-medium text-brand">
+                    <span className="font-sans font-bold tabular-nums text-brand tracking-tight">
                       {mat.basePricePerM2.toLocaleString('vi-VN')} đ/m²
                     </span>
                   </div>

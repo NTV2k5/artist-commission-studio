@@ -15,7 +15,7 @@ export class UploadsService {
     const accessKeyId = process.env.CLOUDFLARE_R2_ACCESS_KEY_ID;
     const secretAccessKey = process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY;
     this.bucketName = process.env.CLOUDFLARE_R2_BUCKET_NAME || 'artist-commission-studio';
-    this.publicUrl = process.env.CLOUDFLARE_R2_PUBLIC_URL || 'https://pub-dummy.r2.dev';
+    this.publicUrl = process.env.CLOUDFLARE_R2_PUBLIC_URL || '';
 
     if (
       accountId &&
@@ -33,6 +33,10 @@ export class UploadsService {
         },
       });
     }
+  }
+
+  hasCloudStorage(): boolean {
+    return this.s3Client !== null;
   }
 
   async createPresignedUrl(dto: CreatePresignedUrlDto) {
@@ -55,16 +59,17 @@ export class UploadsService {
         fileUrl,
         key: uniqueKey,
         isMock: false,
+        isLocal: false,
       };
     }
 
-    // Dev Fallback when R2 cloud credentials are dummy in local development
-    const mockFileUrl = `https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1200&q=80`;
+    // Local Storage Fallback when R2/S3 is not configured
     return {
-      uploadUrl: `/api/v1/uploads/mock-upload?key=${uniqueKey}`,
-      fileUrl: mockFileUrl,
+      uploadUrl: '/api/v1/uploads/local',
+      fileUrl: '',
       key: uniqueKey,
-      isMock: true,
+      isMock: false,
+      isLocal: true,
     };
   }
 }

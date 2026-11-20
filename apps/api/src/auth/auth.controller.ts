@@ -5,6 +5,8 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { User } from '@prisma/client';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 
 export class SyncUserDto {
   @IsEmail()
@@ -28,6 +30,18 @@ export class SyncUserDto {
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Post('register')
+  @ApiOperation({ summary: 'Register a new customer or artist account' })
+  register(@Body() dto: RegisterDto) {
+    return this.authService.register(dto);
+  }
+
+  @Post('login')
+  @ApiOperation({ summary: 'Login with email and password' })
+  login(@Body() dto: LoginDto) {
+    return this.authService.login(dto);
+  }
 
   @Post('sync')
   @ApiOperation({ summary: 'Synchronize NextAuth session user and issue backend JWT' })

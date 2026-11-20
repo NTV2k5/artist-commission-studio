@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtService } from '@nestjs/jwt';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CancelOrderDto } from './dto/cancel-order.dto';
@@ -19,13 +20,26 @@ import { User } from '@prisma/client';
 @ApiTags('Orders')
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create new artwork commission order' })
   async createOrder(@Body() dto: CreateOrderDto, @Req() req: any) {
-    // If user is authenticated, associate with their account
-    const authUserId = req.user?.id;
+    let authUserId: string | undefined = req.user?.id;
+    if (!authUserId && req.headers?.authorization?.startsWith('Bearer ')) {
+      try {
+        const token = req.headers.authorization.split(' ')[1];
+        const payload: any = this.jwtService.decode(token);
+        if (payload?.sub) {
+          authUserId = payload.sub;
+        }
+      } catch {
+        // ignore decoding errors
+      }
+    }
     return this.ordersService.createOrder(dto, authUserId);
   }
 
