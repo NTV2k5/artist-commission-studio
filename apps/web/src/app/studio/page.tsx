@@ -20,8 +20,11 @@ import {
 import { fetchStudioAnalytics } from '@/lib/api';
 
 export default function StudioOverviewPage() {
-  const { data: session } = useSession();
-  const token = (session?.user as any)?.backendToken;
+  const { data: session, status } = useSession();
+  const token =
+    (session?.user as any)?.backendToken ||
+    (session?.user as any)?.accessToken ||
+    (session as any)?.accessToken;
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -41,16 +44,19 @@ export default function StudioOverviewPage() {
   }, [token]);
 
   useEffect(() => {
-    if (token) {
+    if (status === 'authenticated') {
       loadData();
+    } else if (status === 'unauthenticated') {
+      setLoading(false);
+      setError('Vui lòng đăng nhập với tài khoản Họa sĩ để xem thống kê.');
     }
-  }, [token, loadData]);
+  }, [status, loadData]);
 
   if (loading) {
     return (
       <div className="py-20 flex flex-col items-center justify-center text-center space-y-3">
         <Loader2 className="w-8 h-8 animate-spin text-[#3E5C6E]" />
-        <p className="text-xs text-zinc-500 font-serif">
+        <p className="text-xs text-zinc-500 font-sans">
           Đang tính toán doanh thu và chỉ số tài chính xưởng vẽ...
         </p>
       </div>

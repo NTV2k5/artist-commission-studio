@@ -32,8 +32,8 @@ const config: Config = {
         foreground: '#18181B',
       },
       fontFamily: {
-        serif: ['var(--font-cormorant)', 'Playfair Display', 'Georgia', 'serif'],
-        sans: ['var(--font-jakarta)', 'Inter', 'sans-serif'],
+        serif: ['var(--font-serif)', 'var(--font-cormorant)', 'Playfair Display', 'Georgia', 'serif'],
+        sans: ['var(--font-sans)', 'var(--font-jakarta)', 'Inter', 'sans-serif'],
       },
       letterSpacing: {
         editorial: '0.15em',

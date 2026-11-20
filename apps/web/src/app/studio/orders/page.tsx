@@ -50,11 +50,15 @@ export default function StudioOrdersPage() {
   const searchParams = useSearchParams();
   const urlOrderCode = searchParams.get('orderCode');
 
-  const { data: session } = useSession();
-  const token = (session?.user as any)?.backendToken;
+  const { data: session, status } = useSession();
+  const token =
+    (session?.user as any)?.backendToken ||
+    (session?.user as any)?.accessToken ||
+    (session as any)?.accessToken;
 
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
 
   // Filters
@@ -112,6 +116,7 @@ export default function StudioOrdersPage() {
   const loadOrders = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await fetchStudioOrders(
         {
           search: search.trim() || undefined,
@@ -131,16 +136,20 @@ export default function StudioOrdersPage() {
       }
     } catch (err: any) {
       console.warn('Failed to load studio orders:', err);
+      setError(err.message || 'Không thể tải danh sách đơn hàng');
     } finally {
       setLoading(false);
     }
   }, [search, serviceFilter, token, urlOrderCode, selectedOrder, openDrawer]);
 
   useEffect(() => {
-    if (token) {
+    if (status === 'authenticated') {
       loadOrders();
+    } else if (status === 'unauthenticated') {
+      setLoading(false);
+      setError('Vui lòng đăng nhập với tài khoản Họa sĩ để quản lý đơn hàng.');
     }
-  }, [token, serviceFilter, loadOrders]);
+  }, [status, serviceFilter, loadOrders]);
 
   // Submit Quote Update
   const handleUpdateQuote = async (e: React.FormEvent) => {
@@ -314,7 +323,19 @@ export default function StudioOrdersPage() {
       {loading ? (
         <div className="py-20 flex flex-col items-center justify-center text-center space-y-3">
           <Loader2 className="w-8 h-8 animate-spin text-[#3E5C6E]" />
-          <p className="text-xs text-zinc-500 font-serif">Đang đồng bộ điều phối đơn hàng...</p>
+          <p className="text-xs text-zinc-500 font-sans">Đang đồng bộ điều phối đơn hàng...</p>
+        </div>
+      ) : error ? (
+        <div className="bg-white p-8 rounded-2xl border border-zinc-200 text-center space-y-4 max-w-lg mx-auto">
+          <AlertTriangle className="w-8 h-8 text-rose-500 mx-auto" />
+          <p className="text-xs text-zinc-600 font-sans">{error}</p>
+          <button
+            type="button"
+            onClick={loadOrders}
+            className="px-4 py-2 bg-[#18181B] text-white text-xs font-semibold rounded-xl"
+          >
+            Thử Lại
+          </button>
         </div>
       ) : viewMode === 'kanban' ? (
         /* KANBAN BOARD VIEW */

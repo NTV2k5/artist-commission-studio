@@ -18,7 +18,11 @@ const providers: any[] = [
       const email = (credentials.email as string).toLowerCase().trim();
       const password = credentials.password as string | undefined;
       const name = (credentials.name as string) || email.split('@')[0];
-      const artistAdminEmail = (process.env.ARTIST_ADMIN_EMAIL || 'artist@studio.vn').toLowerCase().trim();
+      const artistAdminEmail = (
+        process.env.ARTIST_ADMIN_EMAIL ||
+        process.env.NEXT_PUBLIC_ARTIST_ADMIN_EMAIL ||
+        'artist@studio.vn'
+      ).toLowerCase().trim();
       const rawApiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
       const apiBase = rawApiBase.replace(/\/+$/, '').replace(/\/api\/v1$/, '');
 
@@ -39,6 +43,7 @@ const providers: any[] = [
               name: data.user.name,
               role: data.user.role,
               backendToken: data.token,
+              accessToken: data.token,
             };
           }
           return null;
@@ -58,6 +63,7 @@ const providers: any[] = [
               name: data.user.name,
               role: data.user.role,
               backendToken: data.token,
+              accessToken: data.token,
             };
           }
         }
@@ -96,10 +102,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user, account }) {
       if (user) {
         token.role = (user as any).role || 'CUSTOMER';
-        token.backendToken = (user as any).backendToken;
+        token.backendToken = (user as any).backendToken || (user as any).accessToken;
+        token.accessToken = token.backendToken;
       }
-      // If logging in via Google OAuth, sync with backend to get role and backend JWT
-      if (account?.provider === 'google' && token.email) {
+
+      const artistAdminEmail = (
+        process.env.ARTIST_ADMIN_EMAIL ||
+        process.env.NEXT_PUBLIC_ARTIST_ADMIN_EMAIL ||
+        'artist@studio.vn'
+      ).toLowerCase().trim();
+
+      if (token.email && token.email.toLowerCase().trim() === artistAdminEmail) {
+        token.role = 'ARTIST';
+      }
+
+      // If backendToken is missing, always sync with backend to obtain a valid JWT token
+      if (!token.backendToken && token.email) {
         try {
           const rawApiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
           const apiBase = rawApiBase.replace(/\/+$/, '').replace(/\/api\/v1$/, '');
@@ -116,18 +134,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             const data = await res.json();
             token.role = data.user.role;
             token.backendToken = data.token;
+            token.accessToken = data.token;
             token.sub = data.user.id;
           }
         } catch (err) {
-          console.warn('Google user backend sync error:', err);
+          console.warn('Backend user token sync error:', err);
         }
       }
+
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.role = (token.role as 'ARTIST' | 'CUSTOMER') || 'CUSTOMER';
-        session.user.backendToken = token.backendToken as string;
+        const artistAdminEmail = (
+          process.env.ARTIST_ADMIN_EMAIL ||
+          process.env.NEXT_PUBLIC_ARTIST_ADMIN_EMAIL ||
+          'artist@studio.vn'
+        ).toLowerCase().trim();
+
+        const isArtist = token.email?.toLowerCase().trim() === artistAdminEmail || token.role === 'ARTIST';
+        const userRole: 'ARTIST' | 'CUSTOMER' = isArtist ? 'ARTIST' : 'CUSTOMER';
+        const validToken = (token.backendToken || token.accessToken) as string | undefined;
+
+        session.user.role = userRole;
+        session.user.backendToken = validToken;
+        session.user.accessToken = validToken;
+        session.role = userRole;
+        session.accessToken = validToken;
+        session.backendToken = validToken;
         session.user.id = token.sub as string;
       }
       return session;

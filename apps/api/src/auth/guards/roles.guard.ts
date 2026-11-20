@@ -19,7 +19,14 @@ export class RolesGuard implements CanActivate {
     if (!user) {
       throw new ForbiddenException('User is not authenticated');
     }
-    const hasRole = requiredRoles.includes(user.role);
+
+    const artistAdminEmail = (process.env.ARTIST_ADMIN_EMAIL || 'artist@studio.vn').toLowerCase().trim();
+    const isArtistAdmin = user.email && user.email.toLowerCase().trim() === artistAdminEmail;
+
+    const hasRole =
+      requiredRoles.includes(user.role) ||
+      (isArtistAdmin && requiredRoles.includes(Role.ARTIST));
+
     if (!hasRole) {
       throw new ForbiddenException('You do not have permission to access this resource');
     }

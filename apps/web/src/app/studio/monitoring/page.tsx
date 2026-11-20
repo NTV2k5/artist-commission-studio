@@ -20,12 +20,16 @@ import {
 import { fetchStudioHealth, fetchStudioSepayLogs, reconcileStudioSepay } from '@/lib/api';
 
 export default function StudioMonitoringPage() {
-  const { data: session } = useSession();
-  const token = (session?.user as any)?.backendToken;
+  const { data: session, status } = useSession();
+  const token =
+    (session?.user as any)?.backendToken ||
+    (session?.user as any)?.accessToken ||
+    (session as any)?.accessToken;
 
   const [health, setHealth] = useState<any>(null);
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
 
   // Reconciliation state: transactionId -> orderCode input
@@ -35,6 +39,7 @@ export default function StudioMonitoringPage() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const [healthRes, logsRes] = await Promise.all([
         fetchStudioHealth(token),
         fetchStudioSepayLogs(filterStatus !== 'ALL' ? filterStatus : undefined, token),
@@ -43,16 +48,20 @@ export default function StudioMonitoringPage() {
       setLogs(logsRes);
     } catch (err: any) {
       console.warn('Failed to load monitoring data:', err);
+      setError(err.message || 'Không thể tải dữ liệu giám sát hệ thống');
     } finally {
       setLoading(false);
     }
   }, [token, filterStatus]);
 
   useEffect(() => {
-    if (token) {
+    if (status === 'authenticated') {
       loadData();
+    } else if (status === 'unauthenticated') {
+      setLoading(false);
+      setError('Vui lòng đăng nhập với tài khoản Họa sĩ để xem trạng thái hệ thống.');
     }
-  }, [token, loadData]);
+  }, [status, loadData]);
 
   const handleReconcile = async (txId: string) => {
     const orderCode = reconcileInputs[txId]?.trim();
@@ -211,7 +220,19 @@ export default function StudioMonitoringPage() {
         {loading ? (
           <div className="py-16 flex flex-col items-center justify-center text-center space-y-2">
             <Loader2 className="w-6 h-6 animate-spin text-[#3E5C6E]" />
-            <p className="text-zinc-400 text-xs font-serif">Đang tải lịch sử giao dịch SePay...</p>
+            <p className="text-zinc-400 text-xs font-sans">Đang tải lịch sử giao dịch SePay...</p>
+          </div>
+        ) : error ? (
+          <div className="p-8 text-center space-y-3">
+            <AlertTriangle className="w-6 h-6 text-rose-500 mx-auto" />
+            <p className="text-xs text-zinc-600 font-sans">{error}</p>
+            <button
+              type="button"
+              onClick={loadData}
+              className="px-4 py-1.5 bg-[#18181B] text-white text-xs font-semibold rounded-xl"
+            >
+              Thử Lại
+            </button>
           </div>
         ) : logs.length === 0 ? (
           <div className="py-16 text-center text-zinc-400 italic">

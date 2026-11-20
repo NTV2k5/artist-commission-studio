@@ -28,8 +28,18 @@ export default function StudioLayout({
     );
   }
 
-  // 2. Permission check: Strictly allow only ARTIST role
-  const isArtist = session?.user && (session.user as any).role === 'ARTIST';
+  // 2. Permission check: Strictly allow only ARTIST role or matching admin email
+  const artistAdminEmail = (
+    process.env.NEXT_PUBLIC_ARTIST_ADMIN_EMAIL ||
+    process.env.ARTIST_ADMIN_EMAIL ||
+    'artist@studio.vn'
+  ).toLowerCase().trim();
+
+  const isArtist =
+    session?.user &&
+    ((session.user as any).role === 'ARTIST' ||
+      (session as any).role === 'ARTIST' ||
+      session.user.email?.toLowerCase().trim() === artistAdminEmail);
 
   if (!session || !isArtist) {
     return (
