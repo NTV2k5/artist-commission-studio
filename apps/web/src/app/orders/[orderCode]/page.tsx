@@ -297,7 +297,7 @@ export default function OrderDetailPage({ params }: OrderPageProps) {
                     <span className="text-[10px] uppercase tracking-widest text-[#B45309] font-bold block">
                       Thanh Toán Trực Tiếp VietQR (SePay)
                     </span>
-                    <h3 className="font-serif text-2xl font-normal text-white">
+                    <h3 className="font-sans text-2xl font-semibold text-white tracking-tight">
                       Quét Mã Chuyển Khoản Tiền Cọc
                     </h3>
                   </div>
@@ -593,7 +593,7 @@ export default function OrderDetailPage({ params }: OrderPageProps) {
 
                 <div className="flex justify-between font-bold text-sm text-zinc-900 pt-2 border-t border-zinc-100">
                   <span>Tổng giá trị đơn hàng:</span>
-                  <span className="font-serif text-lg text-[#3E5C6E]">
+                  <span className="font-sans font-bold tabular-nums text-lg text-[#3E5C6E] tracking-tight">
                     {order.totalAmount.toLocaleString('vi-VN')} VNĐ
                   </span>
                 </div>
