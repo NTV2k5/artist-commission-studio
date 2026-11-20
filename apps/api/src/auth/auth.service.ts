@@ -13,6 +13,18 @@ export interface SyncUserInput {
   phone?: string;
 }
 
+export type UserWithPassword = {
+  id: string;
+  email: string;
+  name: string;
+  phone: string | null;
+  avatarUrl: string | null;
+  passwordHash?: string | null;
+  role: Role;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -28,18 +40,18 @@ export class AuthService {
     const artistAdminEmail = (process.env.ARTIST_ADMIN_EMAIL || 'artist@studio.vn').toLowerCase().trim();
     const assignedRole = normalizedEmail === artistAdminEmail ? Role.ARTIST : Role.CUSTOMER;
 
-    const existing = await this.prisma.user.findUnique({
+    const existing = (await this.prisma.user.findUnique({
       where: { email: normalizedEmail },
-    });
+    })) as UserWithPassword | null;
 
-    if (existing && existing.passwordHash) {
+    if (existing?.passwordHash) {
       throw new ConflictException('Email này đã được đăng ký tài khoản. Vui lòng đăng nhập.');
     }
 
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(dto.password, salt);
 
-    let user;
+    let user: any;
     if (existing) {
       user = await this.prisma.user.update({
         where: { id: existing.id },
@@ -48,7 +60,7 @@ export class AuthService {
           phone: dto.phone || existing.phone,
           passwordHash,
           role: assignedRole,
-        },
+        } as any,
       });
     } else {
       user = await this.prisma.user.create({
@@ -58,7 +70,7 @@ export class AuthService {
           phone: dto.phone,
           passwordHash,
           role: assignedRole,
-        },
+        } as any,
       });
     }
 
@@ -88,9 +100,9 @@ export class AuthService {
   async login(dto: LoginDto) {
     const normalizedEmail = dto.email.toLowerCase().trim();
 
-    const user = await this.prisma.user.findUnique({
+    const user = (await this.prisma.user.findUnique({
       where: { email: normalizedEmail },
-    });
+    })) as UserWithPassword | null;
 
     if (!user || !user.passwordHash) {
       throw new UnauthorizedException('Email hoặc mật khẩu không chính xác.');

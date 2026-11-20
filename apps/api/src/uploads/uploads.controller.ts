@@ -27,7 +27,7 @@ if (!fs.existsSync(uploadsDir)) {
 @ApiTags('Uploads')
 @Controller('uploads')
 export class UploadsController {
-  constructor(private readonly uploadsService: UploadsService) {}
+  constructor(private readonly uploadsService: UploadsService) { }
 
   @Post('presigned-url')
   @ApiOperation({ summary: 'Request presigned URL for direct cloud upload (R2/S3)' })
