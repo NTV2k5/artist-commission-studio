@@ -53,7 +53,7 @@ export function BeforeAfterSlider({
         onTouchMove={handleTouchMove}
         className="relative aspect-[16/9] md:aspect-[21/9] w-full overflow-hidden select-none cursor-ew-resize border border-hairline bg-zinc-900 group shadow-md"
       >
-        {/* After Image (Full Background) */}
+        {/* After Image (Full Base Layer) */}
         <div className="absolute inset-0">
           <Image
             src={afterImage}
@@ -63,27 +63,25 @@ export function BeforeAfterSlider({
             className="object-cover"
             priority
           />
-          <div className="absolute top-4 right-4 z-20 px-3 py-1 bg-charcoal/80 backdrop-blur-sm text-white text-[11px] font-sans tracking-wider uppercase border border-white/10">
+          <div className="absolute top-4 right-4 z-20 px-3 py-1 bg-charcoal/80 backdrop-blur-sm text-white text-[11px] font-sans tracking-wider uppercase border border-white/10 whitespace-nowrap">
             {afterLabel}
           </div>
         </div>
 
-        {/* Before Image (Clipped Left Layer) */}
+        {/* Before Image (Clipped Left Layer using CSS clip-path for pixel-perfect overlay) */}
         <div
           className="absolute inset-0 overflow-hidden"
-          style={{ width: `${sliderPosition}%` }}
+          style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
         >
-          <div className="absolute inset-0 w-[100vw] max-w-[1280px]">
-            <Image
-              src={beforeImage}
-              alt={beforeLabel}
-              fill
-              sizes="(max-width: 1280px) 100vw, 1280px"
-              className="object-cover brightness-90 grayscale-[30%]"
-              priority
-            />
-          </div>
-          <div className="absolute top-4 left-4 z-20 px-3 py-1 bg-charcoal/80 backdrop-blur-sm text-white text-[11px] font-sans tracking-wider uppercase border border-white/10">
+          <Image
+            src={beforeImage}
+            alt={beforeLabel}
+            fill
+            sizes="(max-width: 1280px) 100vw, 1280px"
+            className="object-cover brightness-95"
+            priority
+          />
+          <div className="absolute top-4 left-4 z-20 px-3 py-1 bg-charcoal/80 backdrop-blur-sm text-white text-[11px] font-sans tracking-wider uppercase border border-white/10 whitespace-nowrap">
             {beforeLabel}
           </div>
         </div>

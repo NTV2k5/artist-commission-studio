@@ -121,12 +121,12 @@ export default function MyOrdersPage() {
                   <div className="text-left sm:text-right shrink-0 flex items-center sm:block justify-between border-t sm:border-t-0 pt-2 sm:pt-0 border-zinc-100">
                     <div>
                       <span className="text-[11px] text-zinc-400 block sm:inline">Tổng đơn: </span>
-                      <span className="font-serif text-base font-medium text-zinc-900">
+                      <span className="font-sans font-bold tabular-nums text-base text-zinc-900 tracking-tight">
                         {order.totalAmount.toLocaleString('vi-VN')} đ
                       </span>
                     </div>
                     {order.paidAmount > 0 && (
-                      <span className="text-[10px] text-emerald-700 font-medium block">
+                      <span className="text-[10px] font-sans font-semibold tabular-nums text-emerald-700 block">
                         Đã thanh toán: {order.paidAmount.toLocaleString('vi-VN')} đ
                       </span>
                     )}

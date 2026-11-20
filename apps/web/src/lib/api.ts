@@ -9,7 +9,8 @@ import {
   FrameOption,
 } from '@studio/shared';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+const rawApiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').trim().replace(/\/+$/, '');
+const API_BASE_URL = rawApiUrl.endsWith('/api/v1') ? rawApiUrl : `${rawApiUrl}/api/v1`;
 
 // Seeded Fallbacks for SSR or when API is building statically
 export const FALLBACK_STUDIO_CONFIG: ArtistStudioConfigDto = {
@@ -371,20 +372,33 @@ export async function getPresignedUrlApi(filename: string, contentType: string, 
 }
 
 export async function uploadFileToStorage(file: File): Promise<string> {
-  // 1. Get presigned URL
-  const { uploadUrl, fileUrl, isMock } = await getPresignedUrlApi(file.name, file.type, file.size);
+  // 1. Request presigned URL or local storage directive
+  const presigned = await getPresignedUrlApi(file.name, file.type, file.size);
 
-  if (isMock) {
-    // Dev mock PUT
-    await fetch(`${API_BASE_URL}/uploads/mock-upload?key=mock`, {
-      method: 'PUT',
-      body: file,
-    }).catch(() => null);
-    return fileUrl;
+  // If local disk storage mode is active
+  if (presigned.isLocal || presigned.uploadUrl?.includes('/uploads/local')) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const localUploadUrl = presigned.uploadUrl.startsWith('http')
+      ? presigned.uploadUrl
+      : `${API_BASE_URL}/uploads/local`;
+
+    const uploadRes = await fetch(localUploadUrl, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!uploadRes.ok) {
+      const err = await uploadRes.json().catch(() => ({}));
+      throw new Error(err.message || 'Không thể tải ảnh lên máy chủ cục bộ');
+    }
+
+    const data = await uploadRes.json();
+    return data.fileUrl;
   }
 
-  // 2. Direct upload to R2 / S3
-  const uploadRes = await fetch(uploadUrl, {
+  // 2. Direct upload to Cloudflare R2 / S3
+  const uploadRes = await fetch(presigned.uploadUrl, {
     method: 'PUT',
     headers: {
       'Content-Type': file.type,
@@ -396,6 +410,48 @@ export async function uploadFileToStorage(file: File): Promise<string> {
     throw new Error('Upload ảnh lên máy chủ lưu trữ thất bại');
   }
 
-  return fileUrl;
+  return presigned.fileUrl;
+}
+
+export interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+}
+
+export async function registerApi(payload: RegisterPayload) {
+  const res = await fetch(`${API_BASE_URL}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Đăng ký tài khoản thất bại. Vui lòng thử lại.');
+  }
+
+  return await res.json();
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export async function loginApi(payload: LoginPayload) {
+  const res = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+  }
+
+  return await res.json();
 }
 

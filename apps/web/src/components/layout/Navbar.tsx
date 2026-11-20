@@ -184,13 +184,24 @@ export function Navbar() {
               )}
             </div>
           ) : (
-            <Link
-              href="/login"
-              className={`text-xs uppercase tracking-wider font-medium px-3 py-1.5 transition-colors ${isDarkHero ? 'text-[#FAF9F6]/90 hover:text-white' : 'text-zinc-600 hover:text-zinc-900'
-                }`}
-            >
-              Đăng Nhập
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/login"
+                className={`text-xs uppercase tracking-wider font-medium px-3 py-1.5 transition-colors ${isDarkHero ? 'text-[#FAF9F6]/90 hover:text-white' : 'text-zinc-600 hover:text-zinc-900'
+                  }`}
+              >
+                Đăng Nhập
+              </Link>
+              <Link
+                href="/register"
+                className={`text-xs uppercase tracking-wider font-medium px-3 py-1.5 rounded border transition-colors ${isDarkHero
+                  ? 'border-white/30 text-white hover:bg-white/10'
+                  : 'border-zinc-300 text-zinc-800 hover:bg-zinc-100'
+                  }`}
+              >
+                Đăng Ký
+              </Link>
+            </div>
           )}
 
           <Link
@@ -260,13 +271,22 @@ export function Navbar() {
                 </button>
               </>
             ) : (
-              <Link
-                href="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="py-2 text-brand font-medium border-b border-hairline/50"
-              >
-                Đăng Nhập Khách Hàng / Họa Sĩ
-              </Link>
+              <div className="flex flex-col space-y-2.5 py-2 border-b border-hairline/50">
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-brand font-medium text-xs uppercase tracking-wider"
+                >
+                  Đăng Nhập Khách Hàng / Họa Sĩ
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-charcoal hover:text-brand font-medium text-xs uppercase tracking-wider"
+                >
+                  Đăng Ký Tài Khoản Mới
+                </Link>
+              </div>
             )}
           </nav>
           <div className="pt-2">

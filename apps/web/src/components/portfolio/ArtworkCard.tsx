@@ -18,9 +18,9 @@ export function ArtworkCard({ artwork }: ArtworkCardProps) {
 
   return (
     <>
-      <div className="group relative break-inside-avoid mb-8 bg-canvas border border-hairline overflow-hidden transition-all duration-300 hover:shadow-lg">
+      <div className="group relative break-inside-avoid mb-8 bg-canvas border border-hairline overflow-hidden transition-all duration-300 hover:shadow-lg flex flex-col h-full">
         {/* Artwork Image Container */}
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-900">
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-900 shrink-0">
           <Image
             src={artwork.images[0] || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1200&q=80'}
             alt={artwork.title}
@@ -63,8 +63,8 @@ export function ArtworkCard({ artwork }: ArtworkCardProps) {
           </div>
         </div>
 
-        {/* Content Footer */}
-        <div className="p-5 space-y-3">
+        {/* Content Body & Footer */}
+        <div className="p-5 space-y-3 flex flex-col flex-1">
           <div className="flex items-start justify-between gap-2">
             <div>
               <Link href={`/portfolio/${artwork.slug}`}>
@@ -84,18 +84,18 @@ export function ArtworkCard({ artwork }: ArtworkCardProps) {
             )}
           </div>
 
-          <p className="text-xs text-charcoal-muted font-light line-clamp-2 leading-relaxed">
+          <p className="text-xs text-charcoal-muted font-light line-clamp-2 leading-relaxed flex-1">
             {artwork.description}
           </p>
 
-          <div className="pt-3 border-t border-hairline flex items-center justify-between">
-            <span className="text-[11px] text-charcoal-muted italic">
-              {artwork.dimensionsNote ? artwork.dimensionsNote.slice(0, 32) + '...' : 'Khổ tranh theo yêu cầu'}
+          <div className="pt-3 mt-auto border-t border-hairline flex items-center justify-between gap-2">
+            <span className="text-[11px] text-charcoal-muted italic truncate max-w-[65%]">
+              {artwork.dimensionsNote || 'Khổ tranh theo yêu cầu'}
             </span>
 
             <Link
               href={`/commission?template=${artwork.slug}`}
-              className="text-xs uppercase tracking-wider text-brand hover:text-brand-hover font-medium inline-flex items-center gap-1 group/btn"
+              className="text-xs uppercase tracking-wider text-brand hover:text-brand-hover font-medium inline-flex items-center gap-1 whitespace-nowrap shrink-0 group/btn"
             >
               <span>Đặt Vẽ</span>
               <ArrowUpRight className="w-3 h-3 transition-transform group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" />

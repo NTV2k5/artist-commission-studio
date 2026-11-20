@@ -178,9 +178,9 @@ export default function OrderDetailPage({ params }: OrderPageProps) {
 
   // Bank transfer info
   const bankConfig = {
-    bankName: 'MBBank',
-    accountNumber: '0987654321',
-    accountName: 'HOA SI QUOC TUAN',
+    bankName: process.env.NEXT_PUBLIC_SEPAY_BANK_NAME || 'MBBank',
+    accountNumber: process.env.NEXT_PUBLIC_SEPAY_ACCOUNT_NO || '0326163413',
+    accountName: process.env.NEXT_PUBLIC_SEPAY_ACCOUNT_NAME || 'NGUYEN TAN VIET',
   };
 
   const isAwaitingDeposit =
@@ -360,7 +360,7 @@ export default function OrderDetailPage({ params }: OrderPageProps) {
                     <div className="bg-zinc-900/90 p-3 rounded-xl border border-zinc-800 flex justify-between items-center">
                       <div>
                         <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">Số tiền cọc chính xác</span>
-                        <span className="font-mono text-base font-bold text-amber-400">
+                        <span className="font-sans text-lg font-bold tabular-nums text-amber-400 tracking-tight">
                           {qrAmount.toLocaleString('vi-VN')} VNĐ
                         </span>
                       </div>
@@ -422,7 +422,7 @@ export default function OrderDetailPage({ params }: OrderPageProps) {
                   <div>
                     <h3 className="font-serif text-2xl font-normal">Đã Ghi Nhận Thanh Toán Cọc</h3>
                     <p className="text-xs text-emerald-700">
-                      Khoản cọc <strong>{order.depositAmount.toLocaleString('vi-VN')} đ</strong> đã được xác nhận thành công qua SePay VietQR.
+                      Khoản cọc <strong className="font-sans font-bold tabular-nums">{order.depositAmount.toLocaleString('vi-VN')} đ</strong> đã được xác nhận thành công qua SePay VietQR.
                     </p>
                   </div>
                 </div>
@@ -430,17 +430,17 @@ export default function OrderDetailPage({ params }: OrderPageProps) {
                 <div className="p-4 bg-white rounded-xl border border-emerald-100 text-xs text-zinc-700 space-y-2">
                   <div className="flex justify-between">
                     <span>Tổng chi phí đơn hàng:</span>
-                    <span className="font-mono font-semibold">{order.totalAmount.toLocaleString('vi-VN')} đ</span>
+                    <span className="font-sans font-bold tabular-nums">{order.totalAmount.toLocaleString('vi-VN')} đ</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Tổng đã thanh toán:</span>
-                    <span className="font-mono font-semibold text-emerald-700">
+                    <span className="font-sans font-bold tabular-nums text-emerald-700">
                       {order.paidAmount.toLocaleString('vi-VN')} đ
                     </span>
                   </div>
                   <div className="flex justify-between border-t border-zinc-100 pt-2 font-medium">
                     <span>Số tiền còn lại khi bàn giao:</span>
-                    <span className="font-mono text-zinc-900">
+                    <span className="font-sans font-bold tabular-nums text-zinc-900">
                       {Math.max(0, order.totalAmount - order.paidAmount).toLocaleString('vi-VN')} đ
                     </span>
                   </div>
