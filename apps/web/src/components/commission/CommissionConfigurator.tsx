@@ -282,13 +282,13 @@ export function CommissionConfigurator({
     if (!file) return;
 
     if (file.size > 15 * 1024 * 1024) {
-      setUploadError('Dung lượng tệp vượt quá giới hạn 15MB.');
+      setUploadError('Dung lượng tệp vượt quá 15MB. Vui lòng chọn tệp nhỏ hơn.');
       return;
     }
 
     const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!validTypes.includes(file.type)) {
-      setUploadError('Định dạng không hợp lệ. Vui lòng tải ảnh JPG, PNG hoặc WEBP.');
+      setUploadError('Định dạng không được hỗ trợ. Vui lòng chỉ tải ảnh JPG, PNG hoặc WEBP.');
       return;
     }
 
@@ -300,7 +300,7 @@ export function CommissionConfigurator({
       setCustomReferenceUrls((prev) => [...prev, uploadedUrl]);
       setIsCustomReference(true);
     } catch (err: any) {
-      setUploadError(err.message || 'Tải ảnh lên thất bại. Vui lòng thử lại.');
+      setUploadError(err.message || 'Tải ảnh lên thất bại. Vui lòng kiểm tra lại kết nối.');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -340,11 +340,11 @@ export function CommissionConfigurator({
           customerEmail,
           customerPhone: customerPhone || undefined,
           serviceType,
-          templateId: selectedTemplate?.id,
+          templateId: selectedTemplate?.id || (selectedTemplateSlug || undefined),
           customReferenceUrls: customReferenceUrls.length > 0 ? customReferenceUrls : undefined,
           widthCm,
           heightCm,
-          materialId: currentMaterial.id,
+          materialId: currentMaterial?.id || 'mat-oil',
           complexity,
           frameOption: serviceType === ServiceType.FRAMED_ART ? frameOption : undefined,
           address: customerAddress,
@@ -366,7 +366,7 @@ export function CommissionConfigurator({
       // Redirect to Order Detail Room with dynamic VietQR
       router.push(`/orders/${order.orderCode}`);
     } catch (err: any) {
-      setSubmitError(err.message || 'Lỗi khi tạo đơn hàng. Vui lòng thử lại.');
+      setSubmitError(err.message || 'Lỗi khi tạo đơn hàng. Vui lòng kiểm tra kết nối máy chủ.');
       setIsSubmitting(false);
     }
   };

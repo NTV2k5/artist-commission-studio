@@ -9,8 +9,24 @@ import {
   FrameOption,
 } from '@studio/shared';
 
-const rawApiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').trim().replace(/\/+$/, '');
-const API_BASE_URL = rawApiUrl.endsWith('/api/v1') ? rawApiUrl : `${rawApiUrl}/api/v1`;
+/**
+ * Returns the API base URL depending on execution environment.
+ * In browser: returns '/api/v1' to leverage Next.js rewrites proxy (bypassing CORS & port mismatches).
+ * On server (SSR): returns full backend URL (e.g. http://localhost:4000/api/v1).
+ */
+export const getApiBaseUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    return '/api/v1';
+  }
+  const rawApiUrl = (
+    process.env.INTERNAL_API_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    'http://localhost:4000'
+  )
+    .trim()
+    .replace(/\/+$/, '');
+  return rawApiUrl.endsWith('/api/v1') ? rawApiUrl : `${rawApiUrl}/api/v1`;
+};
 
 // Seeded Fallbacks for SSR or when API is building statically
 export const FALLBACK_STUDIO_CONFIG: ArtistStudioConfigDto = {
@@ -194,7 +210,7 @@ export const FALLBACK_ARTWORKS: ArtworkTemplateDto[] = [
 
 export async function fetchStudioConfig(): Promise<ArtistStudioConfigDto> {
   try {
-    const res = await fetch(`${API_BASE_URL}/public/studio-config`, { next: { revalidate: 60 } });
+    const res = await fetch(`${getApiBaseUrl()}/public/studio-config`, { next: { revalidate: 60 } });
     if (!res.ok) throw new Error('Failed to fetch studio config');
     return await res.json();
   } catch {
@@ -204,7 +220,7 @@ export async function fetchStudioConfig(): Promise<ArtistStudioConfigDto> {
 
 export async function fetchMaterials(): Promise<MaterialDto[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/public/materials`, { next: { revalidate: 60 } });
+    const res = await fetch(`${getApiBaseUrl()}/public/materials`, { next: { revalidate: 60 } });
     if (!res.ok) throw new Error('Failed to fetch materials');
     return await res.json();
   } catch {
@@ -223,7 +239,7 @@ export async function fetchArtworks(params?: {
     if (params?.materialSlug) query.append('materialSlug', params.materialSlug);
     if (typeof params?.isFeatured === 'boolean') query.append('isFeatured', String(params.isFeatured));
 
-    const res = await fetch(`${API_BASE_URL}/public/artworks?${query.toString()}`, {
+    const res = await fetch(`${getApiBaseUrl()}/public/artworks?${query.toString()}`, {
       next: { revalidate: 60 },
     });
     if (!res.ok) throw new Error('Failed to fetch artworks');
@@ -245,7 +261,7 @@ export async function fetchArtworks(params?: {
 
 export async function fetchArtworkBySlug(slug: string): Promise<ArtworkTemplateDto | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/public/artworks/${slug}`, {
+    const res = await fetch(`${getApiBaseUrl()}/public/artworks/${slug}`, {
       next: { revalidate: 60 },
     });
     if (!res.ok) throw new Error('Failed to fetch artwork');
@@ -259,7 +275,7 @@ export async function fetchArtworkBySlug(slug: string): Promise<ArtworkTemplateD
 export async function estimatePricingApi(input: PricingEstimateRequest): Promise<CalculatePriceResult & {
   material: { id: string; name: string; slug: string; serviceType: ServiceType; basePricePerM2: number };
 }> {
-  const res = await fetch(`${API_BASE_URL}/public/pricing/estimate`, {
+  const res = await fetch(`${getApiBaseUrl()}/public/pricing/estimate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
@@ -297,22 +313,32 @@ export async function createOrderApi(payload: CreateOrderPayload, token?: string
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE_URL}/orders`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(payload),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${getApiBaseUrl()}/orders`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    });
+  } catch (netErr: any) {
+    throw new Error(
+      `Không thể kết nối đến máy chủ API (${netErr?.message || 'Network error'}). Vui lòng kiểm tra backend đang chạy trên port 4000.`
+    );
+  }
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Không thể tạo đơn hàng. Vui lòng thử lại.');
+    const message = Array.isArray(errorData.message)
+      ? errorData.message.join(', ')
+      : errorData.message || `Lỗi máy chủ (${res.status}: ${res.statusText})`;
+    throw new Error(message);
   }
 
   return await res.json();
 }
 
 export async function fetchOrderByCode(orderCode: string) {
-  const res = await fetch(`${API_BASE_URL}/orders/${orderCode}`, {
+  const res = await fetch(`${getApiBaseUrl()}/orders/${orderCode}`, {
     cache: 'no-store',
   });
 
@@ -329,7 +355,7 @@ export async function cancelOrderApi(orderCode: string, reason?: string, token?:
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE_URL}/orders/${orderCode}/cancel`, {
+  const res = await fetch(`${getApiBaseUrl()}/orders/${orderCode}/cancel`, {
     method: 'PATCH',
     headers,
     body: JSON.stringify({ reason }),
@@ -344,7 +370,7 @@ export async function cancelOrderApi(orderCode: string, reason?: string, token?:
 }
 
 export async function fetchMyOrdersApi(token: string) {
-  const res = await fetch(`${API_BASE_URL}/orders/my-orders`, {
+  const res = await fetch(`${getApiBaseUrl()}/orders/my-orders`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   });
@@ -357,11 +383,16 @@ export async function fetchMyOrdersApi(token: string) {
 }
 
 export async function getPresignedUrlApi(filename: string, contentType: string, fileSize: number) {
-  const res = await fetch(`${API_BASE_URL}/uploads/presigned-url`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ filename, contentType, fileSize }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${getApiBaseUrl()}/uploads/presigned-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename, contentType, fileSize }),
+    });
+  } catch (netErr: any) {
+    throw new Error(`Không thể kết nối đến máy chủ uploads (${netErr?.message || 'Network error'})`);
+  }
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
@@ -372,25 +403,38 @@ export async function getPresignedUrlApi(filename: string, contentType: string, 
 }
 
 export async function uploadFileToStorage(file: File): Promise<string> {
+  const apiBase = getApiBaseUrl();
+
   // 1. Request presigned URL or local storage directive
-  const presigned = await getPresignedUrlApi(file.name, file.type, file.size);
+  const presigned = await getPresignedUrlApi(file.name, file.type || 'image/jpeg', file.size);
 
   // If local disk storage mode is active
   if (presigned.isLocal || presigned.uploadUrl?.includes('/uploads/local')) {
     const formData = new FormData();
     formData.append('file', file);
-    const localUploadUrl = presigned.uploadUrl.startsWith('http')
-      ? presigned.uploadUrl
-      : `${API_BASE_URL}/uploads/local`;
 
-    const uploadRes = await fetch(localUploadUrl, {
-      method: 'POST',
-      body: formData,
-    });
+    // In browser, route through relative /api/v1/uploads/local via Next.js proxy rewrite
+    const targetUrl =
+      typeof window !== 'undefined'
+        ? '/api/v1/uploads/local'
+        : presigned.uploadUrl.startsWith('http')
+        ? presigned.uploadUrl
+        : `${apiBase.replace(/\/api\/v1$/, '')}/api/v1/uploads/local`;
+
+    let uploadRes: Response;
+    try {
+      // DO NOT set Content-Type header so browser automatically sets multipart/form-data boundary
+      uploadRes = await fetch(targetUrl, {
+        method: 'POST',
+        body: formData,
+      });
+    } catch (err: any) {
+      throw new Error(`Lỗi kết nối máy chủ tải ảnh (${err?.message || 'Network error'})`);
+    }
 
     if (!uploadRes.ok) {
       const err = await uploadRes.json().catch(() => ({}));
-      throw new Error(err.message || 'Không thể tải ảnh lên máy chủ cục bộ');
+      throw new Error(err.message || 'Không thể tải ảnh lên máy chủ');
     }
 
     const data = await uploadRes.json();
@@ -421,7 +465,7 @@ export interface RegisterPayload {
 }
 
 export async function registerApi(payload: RegisterPayload) {
-  const res = await fetch(`${API_BASE_URL}/auth/register`, {
+  const res = await fetch(`${getApiBaseUrl()}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -441,7 +485,7 @@ export interface LoginPayload {
 }
 
 export async function loginApi(payload: LoginPayload) {
-  const res = await fetch(`${API_BASE_URL}/auth/login`, {
+  const res = await fetch(`${getApiBaseUrl()}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -454,4 +498,3 @@ export async function loginApi(payload: LoginPayload) {
 
   return await res.json();
 }
-
