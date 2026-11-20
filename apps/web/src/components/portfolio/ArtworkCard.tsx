@@ -32,11 +32,10 @@ export function ArtworkCard({ artwork }: ArtworkCardProps) {
           {/* Service Badge */}
           <div className="absolute top-3 left-3 z-10">
             <span
-              className={`px-2.5 py-1 text-[10px] uppercase tracking-wider font-medium border ${
-                isMural
-                  ? 'bg-artisan/90 text-white border-artisan'
-                  : 'bg-canvas/90 backdrop-blur-sm text-charcoal border-hairline'
-              }`}
+              className={`px-2.5 py-1 text-[10px] uppercase tracking-wider font-medium border ${isMural
+                ? 'bg-artisan/90 text-white border-artisan'
+                : 'bg-canvas/90 backdrop-blur-sm text-charcoal border-hairline'
+                }`}
             >
               {isMural ? 'Bích Họa Tường' : 'Tranh Đóng Khung'}
             </span>
