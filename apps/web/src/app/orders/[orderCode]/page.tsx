@@ -4,6 +4,7 @@ import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import confetti from 'canvas-confetti';
+import { useSession } from 'next-auth/react';
 import { io, Socket } from 'socket.io-client';
 import {
   ArrowLeft,
@@ -26,6 +27,7 @@ import {
 import { fetchOrderByCode, cancelOrderApi } from '@/lib/api';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { OrderWorkspaceChat } from '@/components/chat/OrderWorkspaceChat';
 
 interface OrderPageProps {
   params: Promise<{
@@ -36,6 +38,7 @@ interface OrderPageProps {
 export default function OrderDetailPage({ params }: OrderPageProps) {
   const resolvedParams = use(params);
   const orderCode = resolvedParams.orderCode;
+  const { data: session } = useSession();
 
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -459,32 +462,33 @@ export default function OrderDetailPage({ params }: OrderPageProps) {
               </div>
             )}
 
-            {/* Order Timeline / System Messages */}
-            <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm space-y-4">
-              <h4 className="font-serif text-lg font-medium text-zinc-900 flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-[#3E5C6E]" />
-                <span>Nhật Ký & Sự Kiện Đơn Hàng</span>
-              </h4>
-
-              <div className="space-y-3">
-                {order.messages && order.messages.length > 0 ? (
-                  order.messages.map((msg: any) => (
-                    <div
-                      key={msg.id}
-                      className="p-3.5 bg-[#F4F4F5] rounded-xl text-xs space-y-1 border border-zinc-100"
-                    >
-                      <div className="flex justify-between text-[10px] text-zinc-400">
-                        <span className="font-semibold text-zinc-700">{msg.sender?.name || 'Hệ thống'}</span>
-                        <span>{new Date(msg.createdAt).toLocaleString('vi-VN')}</span>
-                      </div>
-                      <p className="text-zinc-800 leading-relaxed">{msg.content}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-xs text-zinc-400 italic">Chưa có tin nhắn nào trong đơn hàng.</p>
-                )}
-              </div>
-            </div>
+            {/* Realtime Order Workspace Chat */}
+            <OrderWorkspaceChat
+              orderCode={order.orderCode}
+              orderId={order.id}
+              customerId={order.customerId}
+              currentUser={
+                session?.user
+                  ? {
+                      id: (session.user as any).id,
+                      name: session.user.name || undefined,
+                      email: session.user.email || undefined,
+                      role: (session.user as any).role || 'CUSTOMER',
+                      avatarUrl: session.user.image,
+                      backendToken: (session.user as any).backendToken,
+                    }
+                  : null
+              }
+              orderStatus={order.status}
+              revisionCount={order.revisionCount || 0}
+              sketchApprovedAt={order.sketchApprovedAt}
+              onOrderUpdated={(updated) => {
+                setOrder((prev: any) => ({
+                  ...prev,
+                  ...updated,
+                }));
+              }}
+            />
           </div>
 
           {/* Right Column: Order Summary & Specifications */}

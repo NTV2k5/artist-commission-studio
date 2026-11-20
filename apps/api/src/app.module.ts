@@ -6,6 +6,8 @@ import { PublicModule } from './public/public.module';
 import { AuthModule } from './auth/auth.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { OrdersModule } from './orders/orders.module';
+import { ChatModule } from './chat/chat.module';
+import { AiAssistantModule } from './ai-assistant/ai-assistant.module';
 
 @Module({
   imports: [
@@ -17,7 +19,9 @@ import { OrdersModule } from './orders/orders.module';
     PublicModule,
     AuthModule,
     UploadsModule,
+    ChatModule,
     OrdersModule,
+    AiAssistantModule,
   ],
   controllers: [AppController],
   providers: [],
