@@ -591,3 +591,285 @@ export async function aiChatApi(messages: AiChatMessage[]): Promise<AiChatRespon
 
   return await res.json();
 }
+
+// ==========================================
+// ARTIST STUDIO DASHBOARD APIS (/studio)
+// ==========================================
+
+function getAuthHeaders(token?: string): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+export async function fetchStudioOrders(
+  query: { status?: string; serviceType?: string; search?: string; page?: number; limit?: number } = {},
+  token?: string,
+) {
+  const params = new URLSearchParams();
+  if (query.status) params.set('status', query.status);
+  if (query.serviceType) params.set('serviceType', query.serviceType);
+  if (query.search) params.set('search', query.search);
+  if (query.page) params.set('page', query.page.toString());
+  if (query.limit) params.set('limit', query.limit.toString());
+
+  const res = await fetch(`${getApiBaseUrl()}/studio/orders?${params.toString()}`, {
+    headers: getAuthHeaders(token),
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể tải danh sách đơn hàng studio');
+  }
+  return await res.json();
+}
+
+export async function fetchStudioOrderById(id: string, token?: string) {
+  const res = await fetch(`${getApiBaseUrl()}/studio/orders/${id}`, {
+    headers: getAuthHeaders(token),
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể tải chi tiết đơn hàng');
+  }
+  return await res.json();
+}
+
+export async function updateStudioQuote(
+  id: string,
+  dto: { complexity?: string; artworkPrice?: number; shippingOrTravelFee?: number },
+  token?: string,
+) {
+  const res = await fetch(`${getApiBaseUrl()}/studio/orders/${id}/quote`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể cập nhật báo giá');
+  }
+  return await res.json();
+}
+
+export async function updateStudioOrderStatus(
+  id: string,
+  dto: { status: string; scheduledStartDate?: string; scheduledEndDate?: string },
+  token?: string,
+) {
+  const res = await fetch(`${getApiBaseUrl()}/studio/orders/${id}/status`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể cập nhật trạng thái đơn hàng');
+  }
+  return await res.json();
+}
+
+export async function confirmStudioCashPayment(id: string, token?: string) {
+  const res = await fetch(`${getApiBaseUrl()}/studio/orders/${id}/confirm-cash-payment`, {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể xác nhận tiền mặt');
+  }
+  return await res.json();
+}
+
+export async function cancelStudioOrder(id: string, reason: string, token?: string) {
+  const res = await fetch(`${getApiBaseUrl()}/studio/orders/${id}/cancel`, {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify({ reason }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể hủy đơn hàng');
+  }
+  return await res.json();
+}
+
+export async function fetchStudioArtworks(token?: string) {
+  const res = await fetch(`${getApiBaseUrl()}/studio/artworks`, {
+    headers: getAuthHeaders(token),
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể tải danh sách tác phẩm');
+  }
+  return await res.json();
+}
+
+export async function createStudioArtwork(dto: any, token?: string) {
+  const res = await fetch(`${getApiBaseUrl()}/studio/artworks`, {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể tạo tác phẩm mới');
+  }
+  return await res.json();
+}
+
+export async function updateStudioArtwork(id: string, dto: any, token?: string) {
+  const res = await fetch(`${getApiBaseUrl()}/studio/artworks/${id}`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể cập nhật tác phẩm');
+  }
+  return await res.json();
+}
+
+export async function deleteStudioArtwork(id: string, token?: string) {
+  const res = await fetch(`${getApiBaseUrl()}/studio/artworks/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(token),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể xóa tác phẩm');
+  }
+  return await res.json();
+}
+
+export async function fetchStudioMaterials(token?: string) {
+  const res = await fetch(`${getApiBaseUrl()}/studio/materials`, {
+    headers: getAuthHeaders(token),
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể tải danh sách chất liệu');
+  }
+  return await res.json();
+}
+
+export async function createStudioMaterial(dto: any, token?: string) {
+  const res = await fetch(`${getApiBaseUrl()}/studio/materials`, {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể tạo chất liệu mới');
+  }
+  return await res.json();
+}
+
+export async function updateStudioMaterial(id: string, dto: any, token?: string) {
+  const res = await fetch(`${getApiBaseUrl()}/studio/materials/${id}`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể cập nhật chất liệu');
+  }
+  return await res.json();
+}
+
+export async function deleteStudioMaterial(id: string, token?: string) {
+  const res = await fetch(`${getApiBaseUrl()}/studio/materials/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(token),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể xóa chất liệu');
+  }
+  return await res.json();
+}
+
+export async function fetchStudioAdminConfig(token?: string) {
+  const res = await fetch(`${getApiBaseUrl()}/studio/config`, {
+    headers: getAuthHeaders(token),
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể tải cấu hình studio');
+  }
+  return await res.json();
+}
+
+export async function updateStudioAdminConfig(dto: any, token?: string) {
+  const res = await fetch(`${getApiBaseUrl()}/studio/config`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể cập nhật cấu hình studio');
+  }
+  return await res.json();
+}
+
+export async function fetchStudioAnalytics(token?: string) {
+  const res = await fetch(`${getApiBaseUrl()}/studio/analytics/overview`, {
+    headers: getAuthHeaders(token),
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể tải số liệu thống kê studio');
+  }
+  return await res.json();
+}
+
+export async function fetchStudioSepayLogs(status?: string, token?: string) {
+  const url = status
+    ? `${getApiBaseUrl()}/studio/monitoring/sepay-logs?status=${status}`
+    : `${getApiBaseUrl()}/studio/monitoring/sepay-logs`;
+  const res = await fetch(url, {
+    headers: getAuthHeaders(token),
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể tải log giao dịch SePay');
+  }
+  return await res.json();
+}
+
+export async function reconcileStudioSepay(id: string, orderCode: string, token?: string) {
+  const res = await fetch(`${getApiBaseUrl()}/studio/monitoring/sepay-logs/${id}/reconcile`, {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify({ orderCode }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Đối soát giao dịch thất bại');
+  }
+  return await res.json();
+}
+
+export async function fetchStudioHealth(token?: string) {
+  const res = await fetch(`${getApiBaseUrl()}/studio/monitoring/health`, {
+    headers: getAuthHeaders(token),
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Không thể tải trạng thái hệ thống');
+  }
+  return await res.json();
+}

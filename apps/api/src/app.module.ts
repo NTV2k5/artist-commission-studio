@@ -8,6 +8,7 @@ import { UploadsModule } from './uploads/uploads.module';
 import { OrdersModule } from './orders/orders.module';
 import { ChatModule } from './chat/chat.module';
 import { AiAssistantModule } from './ai-assistant/ai-assistant.module';
+import { StudioModule } from './studio/studio.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AiAssistantModule } from './ai-assistant/ai-assistant.module';
     ChatModule,
     OrdersModule,
     AiAssistantModule,
+    StudioModule,
   ],
   controllers: [AppController],
   providers: [],
